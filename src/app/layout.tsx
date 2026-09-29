@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
-import { GameProvider } from "@/lib/state/game-context";
-import { theVossManorCase } from "@/data/cases";
+import { AppShell } from "./app-shell";
+import { ChangeCaseButton } from "./change-case-button";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,17 +40,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/" className="text-sm font-semibold tracking-wide accent-text">
               COLDCASE AI
             </Link>
-            <nav className="flex gap-1 overflow-x-auto text-sm">
+            <nav className="flex gap-1 overflow-x-auto text-sm items-center">
               {NAV.map((item) => (
                 <Link key={item.href} href={item.href} className="px-2 py-1 rounded hover:bg-[var(--surface-raised)] whitespace-nowrap">
                   {item.label}
                 </Link>
               ))}
+              <ChangeCaseButton />
             </nav>
           </div>
         </header>
         <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6">
-          <GameProvider truth={theVossManorCase}>{children}</GameProvider>
+          <AppShell>{children}</AppShell>
         </main>
       </body>
     </html>
