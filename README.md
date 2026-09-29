@@ -1,4 +1,4 @@
-# ColdCase AI
+# Alibi
 
 An AI-powered detective investigation game. The player investigates a
 procedurally-generated (MVP: handcrafted) murder mystery by examining
