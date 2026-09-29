@@ -1,71 +1,71 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useGame } from "@/lib/state/game-context";
+import { CaseStamp } from "@/components/alibi/CaseStamp";
+import { ChangeCaseButton } from "./change-case-button";
+import { getDailyDayNumber, LAUNCH_DATE } from "@/lib/engines/daily-case";
+import { loadStreak } from "@/lib/state/streak-storage";
 
-export default function CaseDesk() {
-  const { truth, state, resetSave } = useGame();
-  const evidenceFound = state.discoveredEvidenceIds.length;
-  const evidenceTotal = truth.evidence.length;
-
-  return (
-    <div className="flex flex-col gap-6">
-      <section className="panel p-6">
-        <p className="text-xs uppercase tracking-widest text-[var(--muted)]">Case File</p>
-        <h1 className="text-2xl font-semibold mt-1">{truth.title}</h1>
-        <p className="mt-3 text-sm text-[var(--muted)]">
-          Victim: <span className="text-[var(--foreground)]">{truth.victim.name}</span> — {truth.victim.description}
-        </p>
-        <div className="mt-4 flex gap-6 text-sm">
-          <div>
-            <span className="text-[var(--muted)]">Difficulty</span>
-            <p className="capitalize">{truth.difficulty}</p>
-          </div>
-          <div>
-            <span className="text-[var(--muted)]">Suspects</span>
-            <p>{truth.characters.filter((c) => c.role === "suspect").length}</p>
-          </div>
-          <div>
-            <span className="text-[var(--muted)]">Locations</span>
-            <p>{truth.locations.length}</p>
-          </div>
-          <div>
-            <span className="text-[var(--muted)]">Evidence found</span>
-            <p>
-              {evidenceFound} / {evidenceTotal}
-            </p>
-          </div>
-          <div>
-            <span className="text-[var(--muted)]">Status</span>
-            <p className="capitalize">{state.status.replace("_", " ")}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DeskLink href="/crime-scene" title="Crime Scene" description="Walk the locations and search for evidence." />
-        <DeskLink href="/suspects" title="Suspects" description="Review who was where, and who had reason." />
-        <DeskLink href="/interrogation" title="Interrogation" description="Ask questions. Confront lies with evidence." />
-        <DeskLink href="/evidence" title="Evidence" description="Everything discovered so far." />
-        <DeskLink href="/timeline" title="Timeline" description="Reconstruct the night, in order." />
-        <DeskLink href="/evidence-board" title="Evidence Board" description="Connect suspects, evidence, and events." />
-        <DeskLink href="/accusation" title="Accusation" description="Name the culprit, motive, method, and proof." />
-      </section>
-
-      <div>
-        <button className="btn text-[var(--muted)]" onClick={resetSave}>
-          Start over
-        </button>
-      </div>
-    </div>
-  );
+function timeUntilNextUtcMidnight(): string {
+  const now = new Date();
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const ms = next.getTime() - now.getTime();
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.floor((ms % 3_600_000) / 60_000);
+  return `${h}h ${m}m`;
 }
 
-function DeskLink({ href, title, description }: { href: string; title: string; description: string }) {
+export default function TodayPage() {
+  const { truth, state } = useGame();
+  const [countdown, setCountdown] = useState(timeUntilNextUtcMidnight());
+  const [streak, setStreak] = useState({ current: 0, longest: 0 });
+
+  // Hydration step: localStorage isn't available during server render.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStreak(loadStreak());
+    const id = setInterval(() => setCountdown(timeUntilNextUtcMidnight()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const dayNumber = getDailyDayNumber(new Date(), LAUNCH_DATE);
+  const inProgress = state.discoveredEvidenceIds.length > 0 || state.conversations.length > 0;
+  const solved = state.status !== "in_progress";
+
   return (
-    <Link href={href} className="panel-raised p-4 flex flex-col gap-1 hover:border-[var(--accent)]">
-      <span className="font-medium">{title}</span>
-      <span className="text-xs text-[var(--muted)]">{description}</span>
-    </Link>
+    <div className="flex-1 flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md flex flex-col items-center text-center gap-6">
+        <CaseStamp tone="accent">Case #{dayNumber}</CaseStamp>
+
+        <div>
+          <h1 className="case-title text-3xl sm:text-4xl font-semibold leading-tight">{truth.title}</h1>
+          <p className="mt-3 text-sm text-[var(--muted)] leading-relaxed">{truth.victim.description}</p>
+        </div>
+
+        <Link
+          href="/investigation"
+          className="btn btn-primary w-full justify-center text-base py-3"
+        >
+          {solved ? "Review the case" : inProgress ? "Continue investigation" : "Open today's case"}
+        </Link>
+
+        <div className="w-full grid grid-cols-2 gap-3 mt-2">
+          <div className="panel p-4">
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)]">Streak</p>
+            <p className="case-title text-2xl mt-1">
+              {streak.current} <span className="text-sm text-[var(--muted)] font-sans">day{streak.current === 1 ? "" : "s"}</span>
+            </p>
+          </div>
+          <div className="panel p-4">
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)]">Next case</p>
+            <p className="case-title text-2xl mt-1">{countdown}</p>
+          </div>
+        </div>
+
+        <ChangeCaseButton />
+      </div>
+    </div>
   );
 }

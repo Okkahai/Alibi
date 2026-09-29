@@ -8,6 +8,8 @@ import type { ScoreBreakdown } from "./evaluation-engine";
 
 export const DAILY_DIFFICULTY = "medium" as const;
 export const DAILY_MOVES_BUDGET = 20;
+/** Case #1 — used to compute the "ALIBI #NNN" shown on Today/Result (see getDailyDayNumber). */
+export const LAUNCH_DATE = new Date("2026-09-29T00:00:00Z");
 
 /** UTC calendar date as "YYYY-MM-DD", so every player gets the same day regardless of timezone. */
 export function getUtcDateString(date: Date = new Date()): string {
@@ -47,5 +49,5 @@ function squareFor(breakdown: ScoreBreakdown, category: (typeof CATEGORY_ORDER)[
 /** No spoilers: only the emoji grid and percentage, never suspect names or facts. */
 export function formatDailyShareText(breakdown: ScoreBreakdown, date: Date, dayNumber: number): string {
   const grid = CATEGORY_ORDER.map((c) => squareFor(breakdown, c)).join("");
-  return `ColdCase AI #${dayNumber} (${getUtcDateString(date)})\n${grid}  ${breakdown.percentage}%`;
+  return `ALIBI #${dayNumber} (${getUtcDateString(date)})\n${grid}  ${breakdown.percentage}%`;
 }

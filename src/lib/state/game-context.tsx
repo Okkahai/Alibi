@@ -137,7 +137,12 @@ export function GameProvider({ truth, children }: { truth: CaseTruth; children: 
         setState((s) =>
           s.discoveredEvidenceIds.includes(evidenceId)
             ? s
-            : { ...s, discoveredEvidenceIds: [...s.discoveredEvidenceIds, evidenceId], updatedAt: new Date().toISOString() }
+            : {
+                ...s,
+                discoveredEvidenceIds: [...s.discoveredEvidenceIds, evidenceId],
+                movesUsed: s.movesUsed + 1,
+                updatedAt: new Date().toISOString(),
+              }
         ),
       visitLocation: (locationId) =>
         setState((s) =>
@@ -151,7 +156,8 @@ export function GameProvider({ truth, children }: { truth: CaseTruth; children: 
           const conversations = existing
             ? s.conversations.map((c) => (c.characterId === characterId ? { ...c, turns: [...c.turns, turn] } : c))
             : [...s.conversations, { characterId, turns: [turn] }];
-          return { ...s, conversations, updatedAt: new Date().toISOString() };
+          const movesUsed = turn.speaker === "player" ? s.movesUsed + 1 : s.movesUsed;
+          return { ...s, conversations, movesUsed, updatedAt: new Date().toISOString() };
         }),
       setNotes: (notes) => setState((s) => ({ ...s, playerNotes: notes, updatedAt: new Date().toISOString() })),
       addBoardNode: (node) => setState((s) => ({ ...s, boardNodes: [...s.boardNodes, node], updatedAt: new Date().toISOString() })),

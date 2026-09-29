@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGame } from "@/lib/state/game-context";
+import { CaseStamp } from "@/components/alibi/CaseStamp";
+import { formatDailyShareText, getDailyDayNumber, LAUNCH_DATE, DAILY_MOVES_BUDGET } from "@/lib/engines/daily-case";
+import { recordDailyPlay } from "@/lib/engines/streak";
+import { loadStreak, saveStreak } from "@/lib/state/streak-storage";
 
 interface ScoreResponse {
   score: {
@@ -37,6 +41,8 @@ export default function AccusationPage() {
   const [timelineEventIds, setTimelineEventIds] = useState<string[]>([]);
   const [result, setResult] = useState<ScoreResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [streak, setStreak] = useState({ current: 0, longest: 0 });
+  const [copied, setCopied] = useState(false);
 
   function toggle(list: string[], id: string, setter: (v: string[]) => void) {
     setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -60,74 +66,111 @@ export default function AccusationPage() {
     }
   }
 
+  // Records today's play and refreshes the streak the moment a result exists, once.
+  useEffect(() => {
+    if (!result) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const next = recordDailyPlay(loadStreak(), today);
+    saveStreak(next);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStreak(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!result]);
+
   if (result) {
+    const dayNumber = getDailyDayNumber(new Date(), LAUNCH_DATE);
+    const shareText = formatDailyShareText(result.score, new Date(), dayNumber);
+
     return (
-      <div className="flex flex-col gap-4">
-        <div className="panel p-6">
-          <h1 className="text-2xl font-semibold">
-            Case Closed — <span className="accent-text">{result.score.percentage}%</span>
-          </h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            The culprit was <span className="text-[var(--foreground)]">{result.reveal.culpritName}</span>.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 text-sm">
-            <Score label="Culprit" points={result.score.culprit.points} correct={result.score.culprit.correct} />
-            <Score label="Motive" points={result.score.motive.points} correct={result.score.motive.correct} />
-            <Score label="Method" points={result.score.method.points} correct={result.score.method.correct} />
-            <Score label="Key evidence" points={result.score.keyEvidence.points} correct={result.score.keyEvidence.missed.length === 0} />
-            <Score label="Timeline" points={result.score.timeline.points} correct={result.score.timeline.missed.length === 0} />
+      <div className="flex-1 flex flex-col items-center px-4 py-10">
+        <div className="w-full max-w-lg flex flex-col items-center text-center gap-6">
+          <CaseStamp tone="accent">Case #{dayNumber} solved</CaseStamp>
+
+          <div>
+            <p className="case-title text-5xl font-semibold accent-text">{result.score.percentage}%</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              The culprit was <span className="text-[var(--foreground)]">{result.reveal.culpritName}</span>.
+            </p>
           </div>
-        </div>
 
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">What actually happened</h2>
-          <p className="text-sm">
-            <span className="text-[var(--muted)]">Motive:</span> {result.reveal.motive}
-          </p>
-          <p className="text-sm mt-1">
-            <span className="text-[var(--muted)]">Method:</span> {result.reveal.method}
-          </p>
-        </div>
+          <div className="w-full grid grid-cols-3 sm:grid-cols-5 gap-2 text-sm">
+            <Score label="Culprit" correct={result.score.culprit.correct} />
+            <Score label="Motive" correct={result.score.motive.correct} />
+            <Score label="Method" correct={result.score.method.correct} />
+            <Score label="Evidence" correct={result.score.keyEvidence.missed.length === 0} />
+            <Score label="Timeline" correct={result.score.timeline.missed.length === 0} />
+          </div>
 
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">Full timeline</h2>
-          <ol className="flex flex-col gap-1 text-sm">
-            {result.reveal.fullTimeline
-              .sort((a, b) => a.time.localeCompare(b.time))
-              .map((e) => (
-                <li key={e.id}>
-                  <span className="font-mono accent-text">{e.time}</span> — {e.description}
+          <div className="w-full grid grid-cols-3 gap-3">
+            <Stat label="Moves used" value={`${state.movesUsed}/${DAILY_MOVES_BUDGET}`} />
+            <Stat label="Streak" value={String(streak.current)} />
+            <Stat label="Best" value={String(streak.longest)} />
+          </div>
+
+          <button
+            className="btn btn-primary w-full justify-center py-3"
+            onClick={() => {
+              navigator.clipboard?.writeText(shareText).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              });
+            }}
+          >
+            {copied ? "Copied" : "Share result"}
+          </button>
+          <pre className="panel-raised w-full p-3 text-xs whitespace-pre-wrap text-left font-mono text-[var(--muted)]">{shareText}</pre>
+
+          <div className="w-full panel p-5 text-left">
+            <h2 className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">What actually happened</h2>
+            <p className="text-sm">
+              <span className="text-[var(--muted)]">Motive:</span> {result.reveal.motive}
+            </p>
+            <p className="text-sm mt-1">
+              <span className="text-[var(--muted)]">Method:</span> {result.reveal.method}
+            </p>
+          </div>
+
+          <div className="w-full panel p-5 text-left">
+            <h2 className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Full timeline</h2>
+            <ol className="flex flex-col gap-1 text-sm">
+              {result.reveal.fullTimeline
+                .slice()
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map((e) => (
+                  <li key={e.id}>
+                    <span className="font-mono accent-text">{e.time}</span> {e.description}
+                  </li>
+                ))}
+            </ol>
+          </div>
+
+          <div className="w-full panel p-5 text-left">
+            <h2 className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Lies told</h2>
+            <ul className="flex flex-col gap-1 text-sm">
+              {result.reveal.allLies.map((lie, i) => (
+                <li key={i}>
+                  <span className="text-[var(--foreground)]">{lie.characterName}</span> claimed &ldquo;{lie.falseClaim}&rdquo;, concealing the truth.
                 </li>
               ))}
-          </ol>
-        </div>
+            </ul>
+          </div>
 
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">Lies told</h2>
-          <ul className="flex flex-col gap-1 text-sm">
-            {result.reveal.allLies.map((lie, i) => (
-              <li key={i}>
-                <span className="text-[var(--foreground)]">{lie.characterName}</span> claimed &ldquo;{lie.falseClaim}&rdquo; — concealing the truth.
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">Red herrings</h2>
-          <ul className="flex flex-col gap-1 text-sm text-[var(--muted)]">
-            {result.reveal.redHerrings.map((e) => (
-              <li key={e.id}>{e.description}</li>
-            ))}
-          </ul>
+          <div className="w-full panel p-5 text-left">
+            <h2 className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Red herrings</h2>
+            <ul className="flex flex-col gap-1 text-sm text-[var(--muted)]">
+              {result.reveal.redHerrings.map((e) => (
+                <li key={e.id}>{e.description}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 panel p-6">
-      <h1 className="text-xl font-semibold">Make Your Accusation</h1>
+    <div className="flex flex-col gap-4 panel p-6 m-4 sm:m-6">
+      <h1 className="case-title text-2xl">Make your accusation</h1>
 
       <div>
         <label className="text-sm text-[var(--muted)]">Culprit</label>
@@ -179,17 +222,26 @@ export default function AccusationPage() {
       </div>
 
       <button className="btn btn-primary self-start" onClick={submit} disabled={!culpritId || submitting}>
-        {submitting ? "Submitting..." : "Submit Accusation"}
+        {submitting ? "Submitting..." : "Submit accusation"}
       </button>
     </div>
   );
 }
 
-function Score({ label, points, correct }: { label: string; points: number; correct: boolean }) {
+function Score({ label, correct }: { label: string; correct: boolean }) {
   return (
-    <div className="panel-raised p-3">
-      <p className="text-xs text-[var(--muted)]">{label}</p>
-      <p className={correct ? "accent-text" : "text-[var(--danger)]"}>{points} pts</p>
+    <div className="panel-raised p-2.5">
+      <p className="text-[10px] text-[var(--muted)]">{label}</p>
+      <p className={correct ? "accent-text" : "text-[var(--muted)]"}>{correct ? "Correct" : "Missed"}</p>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="panel p-3">
+      <p className="text-[10px] uppercase tracking-widest text-[var(--muted)]">{label}</p>
+      <p className="case-title text-xl mt-0.5">{value}</p>
     </div>
   );
 }
