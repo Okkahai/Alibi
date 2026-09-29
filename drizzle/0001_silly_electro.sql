@@ -1,0 +1,1 @@
+ALTER TABLE "cases" ADD COLUMN "dialogue_cache" jsonb DEFAULT '{}'::jsonb NOT NULL;

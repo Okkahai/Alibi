@@ -4,6 +4,7 @@ import { getCaseTruth } from "@/data/cases";
 import { generateCase } from "@/lib/engines/case-generator";
 import { DifficultySchema } from "@/lib/schema/case-truth";
 import { askNpc } from "@/lib/engines/npc-dialogue-engine";
+import { getCachedReply, setCachedReply } from "@/lib/engines/dialogue-cache";
 import type { Conversation } from "@/lib/schema/game-state";
 
 const RequestSchema = z.object({
@@ -49,6 +50,18 @@ export async function POST(req: NextRequest) {
     ? { characterId: parsed.data.characterId, turns: parsed.data.conversationTurns }
     : undefined;
 
+  // Only worth checking on a fresh ask — a reply cached without this conversation's
+  // context could be wrong once earlier turns are in play (see dialogue-cache.ts).
+  if (!conversation) {
+    const cached = await getCachedReply(
+      parsed.data.caseId,
+      parsed.data.characterId,
+      parsed.data.playerQuestion,
+      parsed.data.evidenceShownId
+    );
+    if (cached) return NextResponse.json(cached);
+  }
+
   try {
     const result = await askNpc({
       truth,
@@ -58,6 +71,15 @@ export async function POST(req: NextRequest) {
       evidenceShownId: parsed.data.evidenceShownId,
       playerQuestion: parsed.data.playerQuestion,
     });
+    if (!conversation && !result.rejected) {
+      await setCachedReply(
+        parsed.data.caseId,
+        parsed.data.characterId,
+        parsed.data.playerQuestion,
+        parsed.data.evidenceShownId,
+        result
+      );
+    }
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 400 });
