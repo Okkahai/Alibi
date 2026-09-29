@@ -49,6 +49,22 @@ export const METHODS = [
   "used a weapon taken from the scene itself",
 ];
 
+/** Parallel to METHODS: the physical trace the true method leaves at the scene. */
+export const METHOD_CLUES = [
+  { type: "object" as const, description: "An empty medication vial, wiped clean, is hidden behind the books." },
+  { type: "object" as const, description: "A heavy bronze paperweight with a dark stain lies half under the desk." },
+  { type: "photograph" as const, description: "Scuff marks and a dragged rug at the top of the stairs suggest the fall was arranged." },
+  { type: "object" as const, description: "An ornamental piece is missing from its mount on the wall, its bracket freshly scratched." },
+];
+
+/** Parallel to METHODS: a misleading trace that resembles that method but does not hold up. */
+export const METHOD_DECOY_CLUES = [
+  { type: "object" as const, description: "A sealed, unopened medication vial sits in the cabinet, still full." },
+  { type: "object" as const, description: "A heavy ornament on the mantel, dusty and undisturbed for weeks." },
+  { type: "photograph" as const, description: "An old photograph shows the same stairs, already worn and uneven long before tonight." },
+  { type: "object" as const, description: "A decorative piece on the wall, loose in its mount since the spring, per the housekeeper." },
+];
+
 export const PERSONALITIES = [
   "Composed in public, guarded in private.",
   "Quick with a charming explanation for everything.",

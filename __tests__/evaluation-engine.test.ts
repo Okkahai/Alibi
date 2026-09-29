@@ -44,3 +44,24 @@ describe("evaluateAccusation", () => {
     expect(score.keyEvidence.points).toBeLessThan(20);
   });
 });
+
+describe("evaluateAccusation over-selection", () => {
+  it("does not reward ticking every evidence and timeline box", () => {
+    const t = theVossManorCase;
+    const exact = evaluateAccusation(t, {
+      culpritId: t.solution.culpritId,
+      motive: t.solution.motive,
+      method: t.solution.method,
+      keyEvidenceIds: t.solution.keyEvidenceIds,
+      reconstructedTimelineEventIds: t.solution.criticalTimelineEventIds,
+    });
+    const everything = evaluateAccusation(t, {
+      culpritId: t.solution.culpritId,
+      motive: t.solution.motive,
+      method: t.solution.method,
+      keyEvidenceIds: t.evidence.map((e) => e.id),
+      reconstructedTimelineEventIds: t.timeline.map((e) => e.id),
+    });
+    expect(everything.totalPoints).toBeLessThan(exact.totalPoints);
+  });
+});

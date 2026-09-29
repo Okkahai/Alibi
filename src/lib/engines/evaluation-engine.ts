@@ -46,13 +46,15 @@ export function evaluateAccusation(truth: CaseTruth, accusation: Accusation): Sc
   const matchedEvidence = [...submittedKeySet].filter((id) => keySet.has(id));
   const missedEvidence = [...keySet].filter((id) => !submittedKeySet.has(id));
   const extraEvidence = [...submittedKeySet].filter((id) => !keySet.has(id));
-  const evidenceRatio = keySet.size > 0 ? matchedEvidence.length / keySet.size : 0;
+  // Extras count against you, so ticking every box no longer wins.
+  const evidenceRatio = keySet.size > 0 ? matchedEvidence.length / (keySet.size + extraEvidence.length) : 0;
 
   const criticalSet = new Set(solution.criticalTimelineEventIds);
   const submittedTimelineSet = new Set(accusation.reconstructedTimelineEventIds);
   const matchedTimeline = [...submittedTimelineSet].filter((id) => criticalSet.has(id));
   const missedTimeline = [...criticalSet].filter((id) => !submittedTimelineSet.has(id));
-  const timelineRatio = criticalSet.size > 0 ? matchedTimeline.length / criticalSet.size : 0;
+  const extraTimeline = [...submittedTimelineSet].filter((id) => !criticalSet.has(id));
+  const timelineRatio = criticalSet.size > 0 ? matchedTimeline.length / (criticalSet.size + extraTimeline.length) : 0;
 
   const culpritPoints = culpritCorrect ? WEIGHTS.culprit : 0;
   const motivePoints = motiveCorrect ? WEIGHTS.motive : 0;

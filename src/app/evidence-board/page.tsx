@@ -53,7 +53,7 @@ export default function EvidenceBoardPage() {
     suspect: suspects.map((c) => ({ id: c.id, label: c.name })),
     evidence: discoveredEvidence.map((e) => ({ id: e.id, label: `${e.type}: ${e.description.slice(0, 30)}` })),
     location: truth.locations.map((l) => ({ id: l.id, label: l.name })),
-    event: truth.timeline.map((e) => ({ id: e.id, label: `${e.time} ${e.description.slice(0, 30)}` })),
+    event: truth.timeline.filter((e) => discoveredEvidence.some((ev) => ev.relatedEventIds.includes(e.id))).map((e) => ({ id: e.id, label: `${e.time} ${e.description.slice(0, 30)}` })),
     note: [],
   };
 

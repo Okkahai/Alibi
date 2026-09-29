@@ -144,5 +144,8 @@ export const CaseTruthSchema = z.object({
   evidence: z.array(EvidenceSchema).min(1),
   contradictions: z.array(ContradictionSchema).default([]),
   solution: SolutionSchema,
+  /** Shuffled multiple-choice answers for the accusation (correct one included). Absent = free text. */
+  motiveOptions: z.array(z.string()).optional(),
+  methodOptions: z.array(z.string()).optional(),
 });
 export type CaseTruth = z.infer<typeof CaseTruthSchema>;

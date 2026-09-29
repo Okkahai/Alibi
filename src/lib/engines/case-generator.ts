@@ -28,6 +28,8 @@ import {
   RELATIONSHIPS,
   NON_CULPRIT_RELATIONSHIPS,
   METHODS,
+  METHOD_CLUES,
+  METHOD_DECOY_CLUES,
   PERSONALITIES,
   CRIME_LOCATION_NAMES,
   HUB_LOCATION_NAMES,
@@ -72,7 +74,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   // --- Locations ---
   const crimeLocationName = rng.pick(CRIME_LOCATION_NAMES);
   const hubLocationName = rng.pick(HUB_LOCATION_NAMES);
-  const alibiLocationNames = rng.sample(OTHER_LOCATION_NAMES, Math.max(3, Math.min(suspectCount, OTHER_LOCATION_NAMES.length)));
+  const alibiLocationNames = rng.sample(OTHER_LOCATION_NAMES, Math.max(4, Math.min(suspectCount + 1, OTHER_LOCATION_NAMES.length)));
 
   const locCrime = { id: "loc_crime", name: crimeLocationName, description: `Where ${victimName} was found.`, connectedTo: ["loc_hub"] };
   const locHub = { id: "loc_hub", name: hubLocationName, description: "Connects every other room.", connectedTo: ["loc_crime", ...alibiLocationNames.map((_, i) => `loc_alibi_${i}`)] };
@@ -84,22 +86,51 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   }));
   const locations = [locCrime, locHub, ...alibiLocations];
 
-  // --- Characters ---
-  const culpritIndex = rng.int(suspectCount);
-  const characters: Character[] = [];
-  const nonCulpritAlibiEvents: TimelineEvent[] = [];
-  const nonCulpritEvidence: Evidence[] = [];
+  const motiveText = (rel: (typeof RELATIONSHIPS)[number]) => rel.motiveTemplate(victimName);
 
-  let culpritRelationship = RELATIONSHIPS[0];
+  // --- Characters ---
+  // Design: lying is NOT the tell. Some innocents lie too (about a private
+  // matter), several suspects have a believable motive, and only some
+  // innocents have a corroborated alibi. The culprit is the one who both
+  // lies AND cannot be cleared AND is tied to the scene by physical evidence.
+  const culpritIndex = rng.int(suspectCount);
+  const innocentIndexes = Array.from({ length: suspectCount }, (_, i) => i).filter((i) => i !== culpritIndex);
+  const liarCount = Math.min(innocentIndexes.length - 1, difficulty === "easy" ? 1 : difficulty === "medium" ? 2 : 3);
+  const liarIndexes = new Set(rng.sample(innocentIndexes, liarCount));
+  const motiveCount = Math.min(suspectCount, 3);
+  const motiveRelationships = rng.sample(RELATIONSHIPS, motiveCount);
+  const motiveHolders = [culpritIndex, ...rng.sample(innocentIndexes, motiveCount - 1)];
+  const relationshipByIndex = new Map(motiveHolders.map((idx, n) => [idx, motiveRelationships[n]]));
+
+  const characters: Character[] = [];
+  const extraEvents: TimelineEvent[] = [];
+  const extraEvidence: Evidence[] = [];
+  const contradictions: CaseTruth["contradictions"] = [];
+  const culpritRelationship = relationshipByIndex.get(culpritIndex)!;
 
   for (let i = 0; i < suspectCount; i++) {
     const charId = `char_${i}`;
     const name = suspectNames[i];
     const isCulprit = i === culpritIndex;
     const alibiLocation = rng.pick(alibiLocations);
+    const motiveRel = relationshipByIndex.get(i);
+
+    if (motiveRel && !isCulprit) {
+      extraEvidence.push({
+        id: `ev_motive_${i}`,
+        type: "document",
+        description: `A document shows ${name} ${motiveRel.motiveTemplate(victimName)}.`,
+        locationId: rng.pick([locHub, ...alibiLocations]).id,
+        discoveryRequirements: [],
+        relatedCharacterIds: [charId],
+        relatedEventIds: ["evt_context"],
+        reliability: "circumstantial",
+        hiddenInterpretation: `${name} had a motive, but nothing places them at the scene.`,
+        isRedHerring: true,
+      });
+    }
 
     if (isCulprit) {
-      culpritRelationship = rng.pick(RELATIONSHIPS);
       characters.push({
         id: charId,
         name,
@@ -133,15 +164,105 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
             id: `lie_${i}_alibi`,
             falseClaim: `I was at ${alibiLocation.name} the entire evening.`,
             conceals: "evt_crime",
-            brokenBy: ["ev_implicating_0", "ev_implicating_1"],
+            brokenBy: [`ev_contra_${i}`, "ev_implicating_0", "ev_implicating_1"],
             fallback: rng.pick(FALLBACKS),
           },
         ],
       });
+      extraEvidence.push({
+        id: `ev_contra_${i}`,
+        type: "witness_statement",
+        description: `No one at ${alibiLocation.name} recalls seeing ${name} there that evening.`,
+        locationId: alibiLocation.id,
+        discoveryRequirements: [],
+        relatedCharacterIds: [charId],
+        relatedEventIds: ["evt_crime"],
+        reliability: "reliable",
+        hiddenInterpretation: `${name}'s claimed alibi location does not hold up.`,
+        isRedHerring: false,
+      });
+    } else if (liarIndexes.has(i)) {
+      // Innocent liar: hides a private matter, and can be cleared by finding where they really were.
+      const secretLocation = rng.pick(alibiLocations.filter((l) => l.id !== alibiLocation.id));
+      const eventId = `evt_secret_${i}`;
+      extraEvents.push({
+        id: eventId,
+        time: `2${rng.int(2)}:${rng.pick(["00", "15", "30", "45"])}`,
+        description: `${name} was privately at ${secretLocation.name}, not ${alibiLocation.name}.`,
+        locationId: secretLocation.id,
+        involvedCharacterIds: [charId],
+        isTrue: true,
+      });
+      const flavor = rng.pick(EVIDENCE_FLAVORS.alibiCorroboration);
+      extraEvidence.push(
+        {
+          id: `ev_contra_${i}`,
+          type: "witness_statement",
+          description: `No one at ${alibiLocation.name} recalls seeing ${name} there that evening.`,
+          locationId: alibiLocation.id,
+          discoveryRequirements: [],
+          relatedCharacterIds: [charId],
+          relatedEventIds: [eventId],
+          reliability: "reliable",
+          hiddenInterpretation: `${name}'s claimed location does not hold up, but the reason is harmless.`,
+          isRedHerring: false,
+        },
+        {
+          id: `ev_secret_${i}`,
+          type: flavor.type,
+          description: flavor.description(name, secretLocation.name),
+          locationId: secretLocation.id,
+          discoveryRequirements: [],
+          relatedCharacterIds: [charId],
+          relatedEventIds: [eventId],
+          reliability: "reliable",
+          hiddenInterpretation: `Places ${name} away from the scene, clearing them while exposing their lie.`,
+          isRedHerring: false,
+        }
+      );
+      contradictions.push({
+        id: `contra_${charId}`,
+        description: `${name} claims to have been at ${alibiLocation.name}, but was privately at ${secretLocation.name}.`,
+        characterId: charId,
+        claim: `lie_${i}_alibi`,
+        truth: eventId,
+        revealingEvidenceIds: [`ev_contra_${i}`],
+      });
+      characters.push({
+        id: charId,
+        name,
+        role: "suspect",
+        relationshipToVictim: motiveRel ? motiveRel.label : rng.pick(NON_CULPRIT_RELATIONSHIPS),
+        actualLocation: secretLocation.id,
+        claimedLocation: alibiLocation.id,
+        personality: rng.pick(PERSONALITIES),
+        isCulprit: false,
+        stress: 0.3 + rng.next() * 0.3,
+        trust: 0.4 + rng.next() * 0.3,
+        knowledge: [
+          {
+            id: `know_${i}_secret`,
+            fact: `${name} was actually at ${secretLocation.name} on a private matter, not ${alibiLocation.name}.`,
+            relatedEvents: [eventId],
+            source: "witnessed",
+            sensitive: true,
+          },
+        ],
+        doesNotKnow: [`Anything about what happened to ${victimName} at ${crimeLocationName}.`],
+        lies: [
+          {
+            id: `lie_${i}_alibi`,
+            falseClaim: `I was at ${alibiLocation.name} the entire evening.`,
+            conceals: `know_${i}_secret`,
+            brokenBy: [`ev_contra_${i}`],
+            fallback: "reveal_information",
+          },
+        ],
+      });
     } else {
-      const relationship = rng.pick(NON_CULPRIT_RELATIONSHIPS);
+      // Truthful innocent. Only some have an alibi that can be independently verified.
       const eventId = `evt_alibi_${i}`;
-      nonCulpritAlibiEvents.push({
+      extraEvents.push({
         id: eventId,
         time: `2${rng.int(2)}:${rng.pick(["00", "15", "30", "45"])}`,
         description: `${name} was at ${alibiLocation.name} during the critical window.`,
@@ -149,24 +270,26 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
         involvedCharacterIds: [charId],
         isTrue: true,
       });
-      const flavor = rng.pick(EVIDENCE_FLAVORS.alibiCorroboration);
-      nonCulpritEvidence.push({
-        id: `ev_alibi_${i}`,
-        type: flavor.type,
-        description: flavor.description(name, alibiLocation.name),
-        locationId: alibiLocation.id,
-        discoveryRequirements: [],
-        relatedCharacterIds: [charId],
-        relatedEventIds: [eventId],
-        reliability: "reliable",
-        hiddenInterpretation: `Independently corroborates ${name}'s alibi.`,
-        isRedHerring: false,
-      });
+      if (rng.chance(0.6)) {
+        const flavor = rng.pick(EVIDENCE_FLAVORS.alibiCorroboration);
+        extraEvidence.push({
+          id: `ev_alibi_${i}`,
+          type: flavor.type,
+          description: flavor.description(name, alibiLocation.name),
+          locationId: alibiLocation.id,
+          discoveryRequirements: [],
+          relatedCharacterIds: [charId],
+          relatedEventIds: [eventId],
+          reliability: "reliable",
+          hiddenInterpretation: `Independently corroborates ${name}'s alibi.`,
+          isRedHerring: false,
+        });
+      }
       characters.push({
         id: charId,
         name,
         role: "suspect",
-        relationshipToVictim: relationship,
+        relationshipToVictim: motiveRel ? motiveRel.label : rng.pick(NON_CULPRIT_RELATIONSHIPS),
         actualLocation: alibiLocation.id,
         claimedLocation: alibiLocation.id,
         personality: rng.pick(PERSONALITIES),
@@ -207,7 +330,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     involvedCharacterIds: [culprit.id],
     isTrue: true,
   };
-  const method = rng.pick(METHODS);
+  const methodIndex = rng.int(METHODS.length);
+  const method = METHODS[methodIndex];
   const crimeEvent: TimelineEvent = {
     id: "evt_crime",
     time: TIMES.crime,
@@ -224,7 +348,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     involvedCharacterIds: [],
     isTrue: true,
   };
-  const timeline = [contextEvent, confrontationEvent, crimeEvent, ...nonCulpritAlibiEvents, bodyFoundEvent];
+  const timeline = [contextEvent, confrontationEvent, crimeEvent, ...extraEvents, bodyFoundEvent];
 
   // --- Evidence ---
   const implicatingFlavors = rng.sample(EVIDENCE_FLAVORS.implicating, 2);
@@ -255,7 +379,34 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     isRedHerring: true,
   };
 
-  const evidence = [...implicatingEvidence, ...nonCulpritEvidence, redHerringEvidence];
+  const methodClue = METHOD_CLUES[methodIndex];
+  const decoyClue = METHOD_DECOY_CLUES[(methodIndex + 1) % METHODS.length];
+  const methodEvidence: Evidence = {
+    id: "ev_method_0",
+    type: methodClue.type,
+    description: methodClue.description,
+    locationId: locCrime.id,
+    discoveryRequirements: [],
+    relatedCharacterIds: [culprit.id],
+    relatedEventIds: ["evt_crime"],
+    reliability: "reliable",
+    hiddenInterpretation: "Shows how the killing was carried out.",
+    isRedHerring: false,
+  };
+  const methodDecoyEvidence: Evidence = {
+    id: "ev_redherring_1",
+    type: decoyClue.type,
+    description: decoyClue.description,
+    locationId: locCrime.id,
+    discoveryRequirements: [],
+    relatedCharacterIds: [],
+    relatedEventIds: ["evt_body_found"],
+    reliability: "misleading",
+    hiddenInterpretation: "Resembles another method but does not hold up.",
+    isRedHerring: true,
+  };
+
+  const evidence = [...implicatingEvidence, methodEvidence, methodDecoyEvidence, ...extraEvidence, redHerringEvidence];
 
   const truth: CaseTruth = {
     id,
@@ -274,16 +425,19 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
         characterId: culprit.id,
         claim: `lie_${culpritIndex}_alibi`,
         truth: "evt_crime",
-        revealingEvidenceIds: implicatingEvidence.map((e) => e.id),
+        revealingEvidenceIds: [`ev_contra_${culpritIndex}`, ...implicatingEvidence.map((e) => e.id)],
       },
+      ...contradictions,
     ],
     solution: {
       culpritId: culprit.id,
-      motive: `${culprit.name} ${culpritRelationship.motiveTemplate(victimName)}.`,
-      method: `${culprit.name} ${method}.`,
-      keyEvidenceIds: implicatingEvidence.map((e) => e.id),
+      motive: motiveText(culpritRelationship),
+      method,
+      keyEvidenceIds: [...implicatingEvidence.map((e) => e.id), methodEvidence.id],
       criticalTimelineEventIds: ["evt_confrontation", "evt_crime", "evt_body_found"],
     },
+    motiveOptions: rng.sample(motiveRelationships.map(motiveText), motiveRelationships.length),
+    methodOptions: rng.sample(METHODS, METHODS.length),
   };
 
   const parsed = CaseTruthSchema.parse(truth);
