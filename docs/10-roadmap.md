@@ -5,8 +5,12 @@ phase can usually be reordered.
 
 ## Phase 1 — Harden the MVP foundation
 
-- [ ] `deepFreeze()` every `CaseTruth` at load/import time so runtime
+- [x] `deepFreeze()` every `CaseTruth` at load/import time so runtime
       mutation is impossible, not just unpracticed (`docs/06`, Known Gap #1).
+      Shipped as `src/lib/schema/deep-freeze.ts`, applied to
+      `theVossManorCase` at its source module. Still needs applying to
+      `generateCase()`'s output once that PR lands (they're on separate
+      branches right now).
 - [ ] Wire a real LLM provider (Anthropic) behind `LlmProvider`, validated
       by running the existing groundedness-sweep tests against it before
       it's allowed to be the default (`COLDCASE_LLM_PROVIDER=anthropic`).

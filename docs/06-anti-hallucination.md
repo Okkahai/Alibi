@@ -12,10 +12,14 @@ known gap for `docs/10-roadmap.md`.
 `CaseTruth` objects are plain data (`src/data/cases/*.ts`), imported and
 never mutated by any engine. No engine function takes a `CaseTruth` and
 returns a modified one. TypeScript's structural typing doesn't enforce
-`readonly` today (see Known Gaps) — the guarantee currently comes from
-"nothing in the codebase writes to it," verified by code review and the
-absence of any `CaseTruth`-mutating function. A `deepFreeze()` at load time
-is a cheap, high-value addition — tracked in `docs/10-roadmap.md`.
+`readonly` on its own, so this is additionally backed by a runtime
+guarantee: `deepFreeze()` (`src/lib/schema/deep-freeze.ts`) recursively
+freezes every handcrafted case at its source module (`theVossManorCase` in
+`src/data/cases/the-voss-manor-case.ts`), so an attempted write throws a
+`TypeError` in strict mode rather than silently succeeding — see
+`__tests__/deep-freeze.test.ts`. Cases produced by the procedural generator
+(`docs/10-roadmap.md`, Phase 2) should get the same treatment as that
+lands.
 
 ### 2. The LLM only ever sees a filtered KnowledgePacket
 
