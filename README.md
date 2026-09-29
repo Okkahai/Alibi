@@ -30,12 +30,18 @@ npm install
 npm run dev
 ```
 
-No API key or database required — the default LLM provider is a
+No API key or database required to play — the default LLM provider is a
 deterministic mock (`COLDCASE_LLM_PROVIDER=mock`, see
 `src/lib/llm/provider.ts`) and the save system uses browser localStorage
-(`src/lib/state/game-context.tsx`). Postgres (`.env.example` →
-`DATABASE_URL`) is only needed once you wire up server-side saves per
-`docs/10-roadmap.md`.
+(`src/lib/state/game-context.tsx`). If you configure `DATABASE_URL`
+(`.env.example`), saves additionally sync to Postgres for multi-device
+resume — see `docs/07-database-schema.md`:
+
+```bash
+npm run db:generate   # generate a migration from src/lib/db/schema.ts
+npm run db:migrate    # apply migrations
+npm run db:seed       # populate the `cases` table from src/data/cases
+```
 
 ```bash
 npm run test    # vitest: schema, validators, engines, anti-hallucination guarantees

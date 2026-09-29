@@ -10,8 +10,13 @@ phase can usually be reordered.
 - [ ] Wire a real LLM provider (Anthropic) behind `LlmProvider`, validated
       by running the existing groundedness-sweep tests against it before
       it's allowed to be the default (`COLDCASE_LLM_PROVIDER=anthropic`).
-- [ ] Wire `game_saves`/`cases` Postgres persistence into the API routes as
+      Blocked on an `ANTHROPIC_API_KEY` being configured for the app's own
+      deployment — the abstraction and mock reference implementation are
+      ready for it (`docs/06`).
+- [x] Wire `game_saves`/`cases` Postgres persistence into the API routes as
       an alternative to localStorage, for multi-device resume (`docs/07`).
+      Shipped as best-effort sync alongside localStorage, not a replacement
+      for it — `npm run db:seed` populates `cases` first.
 - [ ] Claim-level groundedness checking (beyond named-entity matching) once
       a real provider is in place and can misstate a time/relationship in
       licensed vocabulary (`docs/06`, Known Limitation).
