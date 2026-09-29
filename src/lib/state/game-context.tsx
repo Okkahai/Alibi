@@ -14,6 +14,18 @@ function storageKey(caseId: string) {
   return `coldcase:save:${caseId}`;
 }
 
+const PLAYER_ID_KEY = "coldcase:playerId";
+
+/** A stable per-browser id, used only to key server-side saves — not an account system. */
+function getPlayerId(): string {
+  let id = window.localStorage.getItem(PLAYER_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    window.localStorage.setItem(PLAYER_ID_KEY, id);
+  }
+  return id;
+}
+
 function freshState(caseId: string, seed: string): GameState {
   const now = new Date().toISOString();
   return {
@@ -56,21 +68,64 @@ export function GameProvider({ truth, children }: { truth: CaseTruth; children: 
   // effect swaps in the real save client-side — a deliberate hydration step,
   // not a state-sync loop, so the setState-in-effect lint rule is suppressed here.
   useEffect(() => {
-    const raw = window.localStorage.getItem(storageKey(truth.id));
-    if (raw) {
+    let cancelled = false;
+    const localRaw = window.localStorage.getItem(storageKey(truth.id));
+    let local: GameState | null = null;
+    if (localRaw) {
       try {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setState(JSON.parse(raw));
+        local = JSON.parse(localRaw);
       } catch {
-        // corrupted save, start fresh
+        // corrupted save, ignore
       }
     }
-    setHydrated(true);
+
+    // Best-effort: the server save (Postgres, via /api/saves) is additive to
+    // localStorage, not a replacement for it — if it's unreachable (no
+    // DATABASE_URL configured, network error), the local save still works.
+    const playerId = getPlayerId();
+    fetch(`/api/saves?caseId=${encodeURIComponent(truth.id)}&playerId=${encodeURIComponent(playerId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const remote: GameState | null = data?.save ?? null;
+        // Prefer whichever save was updated more recently.
+        const winner =
+          remote && (!local || new Date(remote.updatedAt) > new Date(local.updatedAt)) ? remote : local;
+        if (winner) {
+          setState(winner);
+        }
+        setHydrated(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (local) {
+          setState(local);
+        }
+        setHydrated(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [truth.id]);
 
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(storageKey(truth.id), JSON.stringify(state));
+
+    // Best-effort remote sync, debounced so rapid state changes (typing notes,
+    // a burst of evidence discovery) don't fire a request per keystroke.
+    const playerId = getPlayerId();
+    const timeout = setTimeout(() => {
+      fetch("/api/saves", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, state }),
+      }).catch(() => {
+        // No server-side persistence available (e.g. DATABASE_URL unset) — localStorage already has it.
+      });
+    }, 800);
+    return () => clearTimeout(timeout);
   }, [state, hydrated, truth.id]);
 
   const value = useMemo<GameContextValue>(
