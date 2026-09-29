@@ -10,6 +10,10 @@ export const cases = pgTable("cases", {
   seed: text("seed").notNull(),
   difficulty: text("difficulty").notNull(),
   truth: jsonb("truth").notNull(), // validated CaseTruth JSON
+  // Map of "characterId::normalizedQuestion" -> NpcReplyResult (src/lib/llm/provider.ts).
+  // Cost control for daily mode (docs/11-daily-mode.md): every player hits this cache
+  // before the LLM, so spend is roughly flat per case-day, not per player.
+  dialogueCache: jsonb("dialogue_cache").default({}).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

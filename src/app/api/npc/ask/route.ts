@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCaseTruth } from "@/data/cases";
+import { generateCase } from "@/lib/engines/case-generator";
+import { DifficultySchema } from "@/lib/schema/case-truth";
 import { askNpc } from "@/lib/engines/npc-dialogue-engine";
+import { getCachedReply, setCachedReply } from "@/lib/engines/dialogue-cache";
 import type { Conversation } from "@/lib/schema/game-state";
 
 const RequestSchema = z.object({
   caseId: z.string(),
+  /** Only needed when caseId isn't one of the handcrafted src/data/cases — lets the
+   *  server reconstruct a generated/daily case deterministically without a DB round trip. */
+  seed: z.string().optional(),
+  difficulty: DifficultySchema.optional(),
   characterId: z.string(),
   playerQuestion: z.string().min(1),
   discoveredEvidenceIds: z.array(z.string()).default([]),
@@ -30,7 +37,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const truth = getCaseTruth(parsed.data.caseId);
+  const truth =
+    getCaseTruth(parsed.data.caseId) ??
+    (parsed.data.seed && parsed.data.difficulty
+      ? generateCase({ seed: parsed.data.seed, difficulty: parsed.data.difficulty })
+      : undefined);
   if (!truth) {
     return NextResponse.json({ error: `Unknown case: ${parsed.data.caseId}` }, { status: 404 });
   }
@@ -38,6 +49,18 @@ export async function POST(req: NextRequest) {
   const conversation: Conversation | undefined = parsed.data.conversationTurns.length
     ? { characterId: parsed.data.characterId, turns: parsed.data.conversationTurns }
     : undefined;
+
+  // Only worth checking on a fresh ask — a reply cached without this conversation's
+  // context could be wrong once earlier turns are in play (see dialogue-cache.ts).
+  if (!conversation) {
+    const cached = await getCachedReply(
+      parsed.data.caseId,
+      parsed.data.characterId,
+      parsed.data.playerQuestion,
+      parsed.data.evidenceShownId
+    );
+    if (cached) return NextResponse.json(cached);
+  }
 
   try {
     const result = await askNpc({
@@ -48,6 +71,15 @@ export async function POST(req: NextRequest) {
       evidenceShownId: parsed.data.evidenceShownId,
       playerQuestion: parsed.data.playerQuestion,
     });
+    if (!conversation && !result.rejected) {
+      await setCachedReply(
+        parsed.data.caseId,
+        parsed.data.characterId,
+        parsed.data.playerQuestion,
+        parsed.data.evidenceShownId,
+        result
+      );
+    }
     return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 400 });

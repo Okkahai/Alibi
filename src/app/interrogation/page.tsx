@@ -33,6 +33,8 @@ export default function InterrogationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caseId: truth.id,
+          seed: truth.seed,
+          difficulty: truth.difficulty,
           characterId,
           playerQuestion: question,
           discoveredEvidenceIds: state.discoveredEvidenceIds,

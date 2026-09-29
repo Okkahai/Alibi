@@ -37,6 +37,7 @@ function freshState(caseId: string, seed: string): GameState {
     boardNodes: [],
     boardConnections: [],
     playerNotes: "",
+    movesUsed: 0,
     accusation: null,
     status: "in_progress",
     createdAt: now,

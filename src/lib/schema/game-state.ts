@@ -56,6 +56,8 @@ export const GameStateSchema = z.object({
   boardNodes: z.array(BoardNodeSchema).default([]),
   boardConnections: z.array(BoardConnectionSchema).default([]),
   playerNotes: z.string().default(""),
+  /** Evidence examined + questions asked + accusation attempts. Daily mode caps this; free play ignores the cap. */
+  movesUsed: z.number().default(0),
   accusation: AccusationSchema.nullable().default(null),
   status: z.enum(["in_progress", "accused", "resolved"]).default("in_progress"),
   createdAt: z.string(),

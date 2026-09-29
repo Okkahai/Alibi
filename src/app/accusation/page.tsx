@@ -50,7 +50,7 @@ export default function AccusationPage() {
       const res = await fetch("/api/accusation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ caseId: truth.id, ...accusation }),
+        body: JSON.stringify({ caseId: truth.id, seed: truth.seed, difficulty: truth.difficulty, ...accusation }),
       });
       const data: ScoreResponse = await res.json();
       setResult(data);
