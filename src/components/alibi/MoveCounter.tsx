@@ -8,7 +8,7 @@ export function MoveCounter({ used, budget }: { used: number; budget: number }) 
   return (
     <div className="flex items-baseline gap-1.5 font-mono text-sm" aria-label={`${remaining} of ${budget} moves remaining`}>
       <span className={low ? "text-[var(--accent)]" : "text-[var(--foreground)]"}>{remaining}</span>
-      <span className="text-[var(--muted)]">/ {budget} moves</span>
+      <span className="text-[var(--muted)]">moves left (of {budget})</span>
     </div>
   );
 }

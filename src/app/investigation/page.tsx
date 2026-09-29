@@ -95,7 +95,7 @@ export default function InvestigationPage() {
                       <p className="text-sm mt-0.5">{found ? ev.description : "Something here might be worth a closer look."}</p>
                     </div>
                     {!found && (
-                      <button className="btn btn-primary shrink-0 text-xs py-1.5" onClick={() => discoverEvidence(ev.id)}>
+                      <button className="btn btn-primary shrink-0 text-xs py-1.5" disabled={state.movesUsed >= DAILY_MOVES_BUDGET} onClick={() => discoverEvidence(ev.id)}>
                         Examine (1 move)
                       </button>
                     )}

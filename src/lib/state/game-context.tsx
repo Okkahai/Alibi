@@ -38,6 +38,7 @@ function freshState(caseId: string, seed: string): GameState {
     boardConnections: [],
     playerNotes: "",
     movesUsed: 0,
+    foundContradictionIds: [],
     accusation: null,
     status: "in_progress",
     createdAt: now,
@@ -51,6 +52,7 @@ interface GameContextValue {
   discoverEvidence: (evidenceId: string) => void;
   visitLocation: (locationId: string) => void;
   appendTurn: (characterId: string, turn: Conversation["turns"][number]) => void;
+  markContradiction: (contradictionId: string) => void;
   setNotes: (notes: string) => void;
   addBoardNode: (node: BoardNode) => void;
   removeBoardNode: (nodeId: string) => void;
@@ -159,6 +161,12 @@ export function GameProvider({ truth, children }: { truth: CaseTruth; children: 
           const movesUsed = turn.speaker === "player" ? s.movesUsed + 1 : s.movesUsed;
           return { ...s, conversations, movesUsed, updatedAt: new Date().toISOString() };
         }),
+      markContradiction: (contradictionId) =>
+        setState((s) =>
+          (s.foundContradictionIds ?? []).includes(contradictionId)
+            ? s
+            : { ...s, foundContradictionIds: [...(s.foundContradictionIds ?? []), contradictionId], updatedAt: new Date().toISOString() }
+        ),
       setNotes: (notes) => setState((s) => ({ ...s, playerNotes: notes, updatedAt: new Date().toISOString() })),
       addBoardNode: (node) => setState((s) => ({ ...s, boardNodes: [...s.boardNodes, node], updatedAt: new Date().toISOString() })),
       removeBoardNode: (nodeId) =>

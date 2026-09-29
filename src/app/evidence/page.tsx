@@ -24,7 +24,6 @@ export default function EvidencePage() {
                 <span className="text-xs text-[var(--muted)]">{location}</span>
               </div>
               <p className="text-sm mt-2">{ev.description}</p>
-              <span className="text-xs mt-2 inline-block text-[var(--muted)] capitalize">reliability: {ev.reliability}</span>
             </div>
           );
         })}

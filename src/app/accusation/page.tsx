@@ -33,6 +33,8 @@ export default function AccusationPage() {
   const { truth, state, submitAccusation } = useGame();
   const suspects = truth.characters.filter((c) => c.role !== "victim");
   const discoveredEvidence = truth.evidence.filter((e) => state.discoveredEvidenceIds.includes(e.id));
+  // Only events the player's evidence points to: listing every event would give the culprit away.
+  const knownEvents = truth.timeline.filter((ev) => discoveredEvidence.some((e) => e.relatedEventIds.includes(ev.id)));
 
   const [culpritId, setCulpritId] = useState("");
   const [motive, setMotive] = useState("");
@@ -123,10 +125,10 @@ export default function AccusationPage() {
           <div className="w-full panel p-5 text-left">
             <h2 className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">What actually happened</h2>
             <p className="text-sm">
-              <span className="text-[var(--muted)]">Motive:</span> {result.reveal.motive}
+              <span className="text-[var(--muted)]">Motive:</span> {truth.motiveOptions ? `${result.reveal.culpritName} ${result.reveal.motive}` : result.reveal.motive}
             </p>
             <p className="text-sm mt-1">
-              <span className="text-[var(--muted)]">Method:</span> {result.reveal.method}
+              <span className="text-[var(--muted)]">Method:</span> {truth.methodOptions ? `${result.reveal.culpritName} ${result.reveal.method}.` : result.reveal.method}
             </p>
           </div>
 
@@ -184,15 +186,8 @@ export default function AccusationPage() {
         </select>
       </div>
 
-      <div>
-        <label className="text-sm text-[var(--muted)]">Motive</label>
-        <textarea value={motive} onChange={(e) => setMotive(e.target.value)} rows={2} className="w-full mt-1 panel-raised px-3 py-2 rounded text-sm" />
-      </div>
-
-      <div>
-        <label className="text-sm text-[var(--muted)]">Method</label>
-        <textarea value={method} onChange={(e) => setMethod(e.target.value)} rows={2} className="w-full mt-1 panel-raised px-3 py-2 rounded text-sm" />
-      </div>
+      <Choice label="Motive" options={truth.motiveOptions} value={motive} onChange={setMotive} />
+      <Choice label="Method" options={truth.methodOptions} value={method} onChange={setMethod} />
 
       <div>
         <label className="text-sm text-[var(--muted)]">Key evidence</label>
@@ -209,7 +204,7 @@ export default function AccusationPage() {
       <div>
         <label className="text-sm text-[var(--muted)]">Reconstructed timeline (events you believe occurred)</label>
         <div className="flex flex-col gap-2 mt-1">
-          {truth.timeline
+          {knownEvents
             .slice()
             .sort((a, b) => a.time.localeCompare(b.time))
             .map((ev) => (
@@ -225,6 +220,30 @@ export default function AccusationPage() {
         {submitting ? "Submitting..." : "Submit accusation"}
       </button>
     </div>
+  );
+}
+
+function Choice({ label, options, value, onChange }: { label: string; options?: string[]; value: string; onChange: (v: string) => void }) {
+  if (!options) {
+    return (
+      <div>
+        <label className="text-sm text-[var(--muted)]">{label}</label>
+        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={2} className="w-full mt-1 panel-raised px-3 py-2 rounded text-sm" />
+      </div>
+    );
+  }
+  return (
+    <fieldset>
+      <legend className="text-sm text-[var(--muted)]">{label}</legend>
+      <div className="flex flex-col gap-2 mt-1">
+        {options.map((o) => (
+          <label key={o} className={`panel-raised px-3 py-2 rounded text-sm flex items-start gap-2 ${value === o ? "border border-[var(--accent)]" : ""}`}>
+            <input type="radio" name={label} checked={value === o} onChange={() => onChange(o)} />
+            {o}
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

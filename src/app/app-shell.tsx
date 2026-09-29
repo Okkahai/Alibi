@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { GameProvider } from "@/lib/state/game-context";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { GameProvider, useGame } from "@/lib/state/game-context";
+import { MoveCounter } from "@/components/alibi/MoveCounter";
 import { CASE_SELECTION_KEY, resolveCaseTruth, type CaseSelection } from "@/lib/state/case-select";
-import { getDailySelection } from "@/lib/engines/daily-case";
+import { getDailySelection, DAILY_MOVES_BUDGET } from "@/lib/engines/daily-case";
 import { CasePicker } from "./case-picker";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -52,7 +55,22 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <GameProvider key={truth.id} truth={truth}>
+      <BackBar />
       {children}
     </GameProvider>
+  );
+}
+
+function BackBar() {
+  const pathname = usePathname();
+  const { state } = useGame();
+  if (pathname === "/" || pathname === "/investigation") return null;
+  return (
+    <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2 text-sm">
+      <Link href="/investigation" className="text-[var(--muted)] hover:text-[var(--foreground)]">
+        &larr; Back to the case
+      </Link>
+      <MoveCounter used={state.movesUsed} budget={DAILY_MOVES_BUDGET} />
+    </div>
   );
 }
