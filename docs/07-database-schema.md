@@ -50,14 +50,26 @@ there's a real save-slot UI.
 
 ## Current persistence reality
 
-The MVP ships **without** requiring Postgres to run at all: the client-side
+The MVP still runs **without** requiring Postgres: the client-side
 `GameProvider` (`src/lib/state/game-context.tsx`) persists `GameState` to
-`localStorage`, keyed by case id. This satisfies "players should be able to
-leave and resume later" with zero setup. The Drizzle schema and client exist
-and are tested to compile/typecheck, but nothing in the current UI writes to
-Postgres yet — wiring the API routes to `game_saves` (for multi-device saves
-and, eventually, multiplayer co-op board sharing) is the first item in
-`docs/10-roadmap.md`.
+`localStorage`, keyed by case id, with zero setup. On top of that,
+`GameProvider` now also best-effort syncs to `/api/saves` (`src/app/api/saves/route.ts`),
+which reads/writes `game_saves` via Drizzle:
+
+- On mount, it fetches the server save (keyed by a per-browser `playerId`
+  stored in `localStorage`, not an account system) and the local save, and
+  keeps whichever has the newer `updatedAt`.
+- On every state change, it PUTs the new state to the server (debounced
+  800ms so rapid changes like typing notes don't fire a request per
+  keystroke).
+- Every server call is wrapped so a failure (no `DATABASE_URL`, network
+  error, `cases` row not seeded for a foreign-key match) falls back to
+  localStorage silently — server sync is additive, never required.
+
+This gives multi-device resume when Postgres is configured, while keeping
+the zero-setup path fully intact. `npm run db:seed` populates the `cases`
+table from `src/data/cases` (required before `game_saves` writes will
+succeed, since `game_saves.case_id` has a foreign key into `cases.id`).
 
 ## Migrations
 
