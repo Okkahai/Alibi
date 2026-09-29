@@ -57,4 +57,31 @@ describe("generateCase", () => {
     expect(culprits).toHaveLength(1);
     expect(culprits[0].id).toBe(truth.solution.culpritId);
   });
+
+  it("does not make lying the tell: an innocent lies too, and can be cleared", () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const truth = generateCase({ seed, difficulty });
+        const liars = truth.characters.filter((c) => c.lies.length > 0);
+        const innocentLiars = liars.filter((c) => !c.isCulprit);
+        expect(innocentLiars.length).toBeGreaterThanOrEqual(1);
+        for (const liar of innocentLiars) {
+          expect(truth.evidence.some((e) => e.id === `ev_secret_${liar.id.split("_")[1]}` && e.locationId === liar.actualLocation)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("gives several suspects a believable motive and offers the true motive and method among options", () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const truth = generateCase({ seed, difficulty });
+        const motiveHolders = truth.evidence.filter((e) => e.id.startsWith("ev_motive_")).length + 1;
+        expect(motiveHolders).toBeGreaterThanOrEqual(3);
+        expect(truth.motiveOptions).toContain(truth.solution.motive);
+        expect(truth.methodOptions).toContain(truth.solution.method);
+        expect(truth.solution.keyEvidenceIds).toContain("ev_method_0");
+      }
+    }
+  });
 });
