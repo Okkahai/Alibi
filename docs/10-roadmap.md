@@ -5,7 +5,7 @@ phase can usually be reordered.
 
 ## Phase 1 — Harden the MVP foundation
 
-- [ ] `deepFreeze()` every `CaseTruth` at load/import time so runtime
+- [x] `deepFreeze()` every `CaseTruth` at load/import time so runtime
       mutation is impossible, not just unpracticed (`docs/06`, Known Gap #1).
 - [x] Wire real LLM providers behind `LlmProvider`: an OpenAI-compatible
       provider (`src/lib/llm/providers/openai-compatible.ts` — works with
@@ -31,6 +31,8 @@ phase can usually be reordered.
       production-ready.
 - [ ] Wire `game_saves`/`cases` Postgres persistence into the API routes as
       an alternative to localStorage, for multi-device resume (`docs/07`).
+      Shipped as best-effort sync alongside localStorage, not a replacement
+      for it — `npm run db:seed` populates `cases` first.
 - [ ] Claim-level groundedness checking (beyond named-entity matching) once
       a real provider is in place and can misstate a time/relationship in
       licensed vocabulary (`docs/06`, Known Limitation).
@@ -41,25 +43,39 @@ phase can usually be reordered.
 
 ## Phase 2 — Case Generator
 
-- [ ] A `CaseGenerator` module that produces a `CaseTruth` from
-      `{ difficulty, seed }`, satisfying every rule in
-      `validateCaseTruth()` by construction (not by generate-then-hope).
-      Likely approach: generate structurally (locations → timeline →
-      characters → evidence → solution) with an LLM proposing *content*
-      (names, descriptions, phrasing) while a deterministic layer enforces
-      *structure* (ids, cross-references, the solvability invariant) —
-      mirroring the same LLM-phrases/engine-enforces split used for
-      dialogue.
-- [ ] A generation-time validation gate: any generated case that fails
-      `validateCaseTruth()` is regenerated or rejected, never patched.
+- [x] A `CaseGenerator` module (`src/lib/engines/case-generator.ts`) that
+      produces a `CaseTruth` from `{ difficulty, seed }`, satisfying every
+      rule in `validateCaseTruth()` by construction. Shipped as pure
+      deterministic content-templating from a seeded PRNG
+      (`src/lib/engines/prng.ts` + `src/data/generator-content.ts`) — no LLM
+      involved yet. `generateCase()` validates its own output and throws
+      rather than return an invalid case; swept across 15 seeds × 3
+      difficulties in `__tests__/case-generator.test.ts` (45 generated
+      cases, all schema-valid and solvable).
+- [ ] Let an LLM propose *content* (names, flavor phrasing) within this same
+      structural generator, the same LLM-phrases/engine-enforces split used
+      for dialogue (docs/03, docs/06) — currently blocked on the same
+      missing `ANTHROPIC_API_KEY` as the real dialogue provider. The
+      generator's structural logic doesn't change; only where names/
+      descriptions come from does.
+- [x] A generation-time validation gate: `generateCase()` already throws on
+      any output that fails `validateCaseTruth()` rather than returning it
+      — there's no "regenerate and hope" path, a generation bug is a loud
+      thrown error, not a silently shipped unsolvable case.
+- [ ] Wire the generator into the app: a case picker UI, and API/db plumbing
+      to generate-then-seed a case into `cases` on demand rather than only
+      the one handcrafted case being playable. Currently `generateCase()` is
+      a tested, standalone engine — nothing in `src/app` calls it yet.
 - [ ] Difficulty-tier content rules beyond suspect count: hard-tier
       "unreliable witnesses" (an NPC whose `knowledge` includes an
       `inferred`-source fact that's actually wrong — modeled as a real,
       scoped falsehood in the schema, not LLM improvisation) and "strong
       alternative theories" (deliberately well-evidenced red herrings).
+      The generator currently produces one red herring and no unreliable
+      witnesses regardless of difficulty.
 - [ ] Difficulty-tier discovery gating: use `Evidence.discoveryRequirements`
-      (schema support already exists, unused by the MVP case) to chain
-      evidence behind other evidence for harder cases.
+      (schema support already exists, unused by both the MVP case and the
+      generator) to chain evidence behind other evidence for harder cases.
 
 ## Phase 3 — Game modes
 
