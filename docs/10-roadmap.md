@@ -7,17 +7,29 @@ phase can usually be reordered.
 
 - [x] `deepFreeze()` every `CaseTruth` at load/import time so runtime
       mutation is impossible, not just unpracticed (`docs/06`, Known Gap #1).
-      Shipped as `src/lib/schema/deep-freeze.ts`, applied to
-      `theVossManorCase` at its source module. Still needs applying to
-      `generateCase()`'s output once that PR lands (they're on separate
-      branches right now).
-- [ ] Wire a real LLM provider (Anthropic) behind `LlmProvider`, validated
-      by running the existing groundedness-sweep tests against it before
-      it's allowed to be the default (`COLDCASE_LLM_PROVIDER=anthropic`).
-      Blocked on an `ANTHROPIC_API_KEY` being configured for the app's own
-      deployment — the abstraction and mock reference implementation are
-      ready for it (`docs/06`).
-- [x] Wire `game_saves`/`cases` Postgres persistence into the API routes as
+- [x] Wire real LLM providers behind `LlmProvider`: an OpenAI-compatible
+      provider (`src/lib/llm/providers/openai-compatible.ts` — works with
+      Ollama, LM Studio, vLLM, or OpenAI itself via `COLDCASE_OPENAI_BASE_URL`,
+      no key needed for a local endpoint) and a real Anthropic provider
+      (`src/lib/llm/providers/anthropic.ts`, active only when
+      `ANTHROPIC_API_KEY` is set — otherwise `getLlmProvider()` falls back
+      to mock with a warning). Both share one constrained system prompt
+      builder (`src/lib/llm/prompt.ts`) and go through the same
+      groundedness check as the mock provider (`askNpc()` doesn't care
+      which provider produced the text). Select with
+      `COLDCASE_LLM_PROVIDER=openai-compatible|anthropic|mock` (default).
+      Tested against a stubbed local HTTP server
+      (`__tests__/llm-providers.test.ts`) and, for the OpenAI-compatible
+      path, smoke-tested through the live `/api/npc/ask` route against a
+      real stub server — confirmed both a normal reply and a deliberately
+      hallucinated one (the latter correctly rejected by the groundedness
+      check). Neither provider has been exercised against the real
+      OpenAI/Anthropic/Ollama APIs in this environment — outbound network
+      access to them is reachable, but no API key was available to
+      authenticate a real call — so a genuine end-to-end run (not just the
+      stubbed-server tests) is still worth doing before treating either as
+      production-ready.
+- [ ] Wire `game_saves`/`cases` Postgres persistence into the API routes as
       an alternative to localStorage, for multi-device resume (`docs/07`).
       Shipped as best-effort sync alongside localStorage, not a replacement
       for it — `npm run db:seed` populates `cases` first.

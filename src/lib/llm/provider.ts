@@ -5,6 +5,8 @@
  * key and runs fully deterministically for local dev and tests.
  */
 import type { KnowledgePacket } from "@/lib/engines/knowledge-packet";
+import { createOpenAiCompatibleProvider } from "./providers/openai-compatible";
+import { createAnthropicProvider } from "./providers/anthropic";
 
 export interface NpcReplyRequest {
   packet: KnowledgePacket;
@@ -75,16 +77,36 @@ export const mockProvider: LlmProvider = {
   },
 };
 
-let activeProvider: LlmProvider = mockProvider;
+let overrideProvider: LlmProvider | null = null;
+let cached: { key: string; provider: LlmProvider } | null = null;
 
 export function getLlmProvider(): LlmProvider {
+  if (overrideProvider) return overrideProvider;
+
   const configured = process.env.COLDCASE_LLM_PROVIDER ?? "mock";
   if (configured === "mock") return mockProvider;
-  // Real providers (e.g. Anthropic) register themselves here in a follow-up PR;
-  // until then, any non-mock config falls back to mock rather than failing silently on missing keys.
-  return activeProvider;
+
+  if (cached?.key === configured) return cached.provider;
+
+  let provider: LlmProvider;
+  if (configured === "anthropic") {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.warn('COLDCASE_LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set — falling back to "mock".');
+      return mockProvider;
+    }
+    provider = createAnthropicProvider();
+  } else if (configured === "openai-compatible") {
+    provider = createOpenAiCompatibleProvider();
+  } else {
+    console.warn(`Unknown COLDCASE_LLM_PROVIDER "${configured}" — falling back to "mock".`);
+    return mockProvider;
+  }
+
+  cached = { key: configured, provider };
+  return provider;
 }
 
-export function setLlmProvider(provider: LlmProvider): void {
-  activeProvider = provider;
+/** Test-only escape hatch to inject a fake provider, bypassing env-based selection. */
+export function setLlmProvider(provider: LlmProvider | null): void {
+  overrideProvider = provider;
 }
