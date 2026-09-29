@@ -5,8 +5,9 @@
  * checked against it in __tests__/case-validators.test.ts.
  */
 import type { CaseTruth } from "@/lib/schema/case-truth";
+import { deepFreeze } from "@/lib/schema/deep-freeze";
 
-export const theVossManorCase: CaseTruth = {
+const theVossManorCaseData: CaseTruth = {
   id: "the-voss-manor-case",
   title: "The Voss Manor Case",
   difficulty: "medium",
@@ -629,3 +630,10 @@ export const theVossManorCase: CaseTruth = {
     ],
   },
 };
+
+/**
+ * Frozen at module load — a runtime guarantee that nothing can write to
+ * this CaseTruth, on top of the convention that nothing in the codebase
+ * does (docs/06-anti-hallucination.md).
+ */
+export const theVossManorCase: CaseTruth = deepFreeze(theVossManorCaseData);
