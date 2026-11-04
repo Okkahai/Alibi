@@ -1,7 +1,7 @@
 /**
  * Daily Mode — docs/11-daily-mode.md. The date itself is the seed: no new
  * generation logic needed, just deterministic id/selection derivation on
- * top of the existing `generateCase()` (src/lib/engines/case-generator.ts).
+ * top of the existing `generateCase()` (src/lib/engines/narrative-generator.ts).
  */
 import type { CaseSelection } from "@/lib/state/case-select";
 import type { ScoreBreakdown } from "./evaluation-engine";

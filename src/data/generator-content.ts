@@ -1,5 +1,5 @@
 /**
- * Content banks for the procedural Case Generator (src/lib/engines/case-generator.ts).
+ * Content banks for the procedural Case Generator (src/lib/engines/narrative-generator.ts).
  * These supply names/phrasing variety; the generator's structural logic is
  * what guarantees validity (see docs/02-case-truth-schema.md and
  * case-validators.ts) — this file has no bearing on solvability.

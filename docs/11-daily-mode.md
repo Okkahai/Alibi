@@ -10,7 +10,9 @@ once server-side and shared by all players that day").
 ## Case selection
 
 The date *is* the seed. `generateCase({ seed: "2026-09-29", difficulty: "medium" })`
-already exists (`src/lib/engines/case-generator.ts`) and is pure/deterministic,
+already exists (`src/lib/engines/narrative-generator.ts`, the solver-backed
+generator — see `docs/PUZZLE_MODEL.md`/`docs/CONSTRAINT_SOLVER.md`/
+`docs/CASE_GENERATION.md`) and is pure/deterministic,
 so no new generation logic is needed — only a lookup/cache layer:
 
 - `id = "daily-YYYY-MM-DD"` (UTC).
