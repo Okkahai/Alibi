@@ -79,6 +79,9 @@ export function Frontispiece({ truth, mode }: { truth: CaseTruth; mode: Mode }) 
               <p className="label text-[var(--on-ink-muted)]">
                 {active ? `Status · ${mode.status.replace("_", " ")}` : "One provable answer · no guessing"}
               </p>
+              <Link href="/tutorial" className="label text-[var(--brass-light)] underline underline-offset-4 min-h-11 flex items-center">
+                First time? How to read a case
+              </Link>
             </div>
           </div>
 

@@ -11,6 +11,7 @@ import { Frontispiece } from "@/components/dossier/frontispiece";
 import { caseMeta, readSelection } from "@/components/dossier/case-meta";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [selection, setSelection] = useState<CaseSelection | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -24,6 +25,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const truth = useMemo(() => (selection ? safeResolve(selection) : null), [selection]);
 
   if (!hydrated) return <SiteHeader />;
+
+  // The tutorial is its own practice file and needs no case on the desk.
+  if (pathname === "/tutorial")
+    return (
+      <>
+        <SiteHeader />
+        <main id="main">{children}</main>
+      </>
+    );
 
   if (!selection || !truth) {
     // No case on the desk: today's daily case is the front page.
