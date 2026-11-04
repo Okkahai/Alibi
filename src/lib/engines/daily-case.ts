@@ -30,24 +30,25 @@ export function getDailyDayNumber(date: Date, launchDate: Date): number {
   return Math.floor((dayMs - launchMs) / msPerDay) + 1;
 }
 
-const CATEGORY_ORDER = ["culprit", "motive", "method", "keyEvidence", "timeline"] as const;
-
-function squareFor(breakdown: ScoreBreakdown, category: (typeof CATEGORY_ORDER)[number]): string {
-  const entry = breakdown[category];
-  if ("correct" in entry) return entry.correct ? "🟩" : "⬛";
-  // keyEvidence / timeline: partial credit by ratio of matched to total.
-  const total = "matched" in entry ? entry.matched.length + entry.missed.length : 0;
-  if (total === 0) return "⬛";
-  const ratio = entry.matched.length / total;
-  if (ratio >= 1) return "🟩";
-  if (ratio > 0) return "🟨";
-  return "⬛";
-}
-
-/** No spoilers: only the emoji grid and percentage, never suspect names or facts. */
+/**
+ * No spoilers: verdicts as ✓/✗ against field names, never a name or fact.
+ * A ledger line, in the dossier's own voice, rather than a coloured grid.
+ */
 export function formatDailyShareText(breakdown: ScoreBreakdown, date: Date, dayNumber: number): string {
-  const grid = CATEGORY_ORDER.map((c) => squareFor(breakdown, c)).join("");
-  return `ColdCase AI #${dayNumber} (${getUtcDateString(date)})\n${grid}  ${breakdown.percentage}%`;
+  const mark = (ok: boolean) => (ok ? "✓" : "✗");
+  const fields = [
+    `Culprit ${mark(breakdown.culprit.correct)}`,
+    `Method ${mark(breakdown.method.correct)}`,
+    ...(breakdown.location ? [`Room ${mark(breakdown.location.correct)}`] : []),
+  ].join("  ");
+  const exhibits = `Exhibits ${breakdown.keyEvidence.matched.length}/${breakdown.keyEvidence.matched.length + breakdown.keyEvidence.missed.length}`;
+  const hints = breakdown.hints.used === 0 ? "No hints" : `${breakdown.hints.used} hint${breakdown.hints.used === 1 ? "" : "s"}`;
+  return [
+    `ALIBI · Case Nº ${String(dayNumber).padStart(3, "0")} · ${getUtcDateString(date)}`,
+    fields,
+    `${exhibits} · ${hints}`,
+    `Finding: ${breakdown.totalPoints}/${breakdown.maxPoints}`,
+  ].join("\n");
 }
 
 /** Day one of the published daily series; case numbers count from here. */

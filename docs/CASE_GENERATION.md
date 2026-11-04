@@ -92,3 +92,34 @@ The current rules:
 `__tests__/crime-room-leak.test.ts` checks this over 300 seeds.
 
 Daily cases from 2026-11-01 to 2026-11-04 render differently after this change. Their puzzles (clues and solution) are the same, because only the narrative layer changed. No snapshots had been published yet.
+
+## Deduction trace, hints and the reveal (2026-11-04)
+
+`deduction-trace.ts` replays a case using only its clues. It reads the game's stated rule ("the one lying about their alibi is the killer") as falseAlibi = culprit. At each step it takes the smallest group of clues that rules out a value, trying single clues first, then pairs, then all clues together. When an axis is down to one value, the trace confirms it.
+
+Across 1,000 generated puzzles, every elimination needed only one clue (about 10 eliminations per case). The trace is stored on `CaseTruth.deduction` as exhibit ids. A handcrafted case leaves it empty, and that disables hints for that case.
+
+`src/lib/state/hints.ts` walks the trace against the player's own grid:
+
+- **Contradicting marks first.** A mark that contradicts the exhibits is flagged before anything else.
+- **Next step.** Otherwise the hint covers the first step the grid does not yet record.
+- **Escalation.** Each further request on the same step escalates: direction, then deduction, then the exact mark.
+- **Unexamined exhibits.** If the exhibit has not been examined yet, the hint points to its room instead of quoting it.
+
+Each hint shown costs 3 points on the finding, up to 15. The verdict itself is never changed.
+
+The reveal lists the full trace under "How the exhibits decide it". Daily cases also get a share block that names no person, method or room.
+
+### QA fixes (2026-11-04)
+
+- **Clue text now matches the solver exactly.**
+  - A "linked" clue is rendered as an *if-and-only-if* that names both values. Before, "Whoever did it used X" asserted only one direction, and in 11 of 120 dailies the text alone left two culprits possible.
+  - A "not-linked" clue is rendered as "not both".
+  - `NOT_LINKED_TEMPLATES` in `narrative-generator.ts` covers these, and every template must keep this exact meaning.
+- **The liar is the killer.** This is now a standing rule enforced in `solver.ts`. The homepage briefing and the matrix intro tell the player. Clue pairs between culprit and false alibi are no longer generated, because under the rule they say nothing.
+- **Hints only use exhibits the player has examined.**
+  - A hint flags a contradicting mark only when the examined exhibits already prove it.
+  - A step whose exhibit is still unexamined stays at level 1, and the hint names no room. This stops hints acting as an oracle or leaking a room.
+  - Hints cost 3 points each, with no cap.
+- **Year-long check.** `__tests__/daily-window.test.ts` generates 365 dailies from launch and checks that the clue-only trace confirms the true culprit and room.
+- **Difficulty is still low.** Every elimination needs only one exhibit, about 12 per case. A harder clue selection is planned for the content phase.

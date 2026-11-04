@@ -87,6 +87,8 @@ export function solve(puzzle: SolvablePuzzle): SolveResult {
     for (const value of domains[axisIndex]) {
       stepsTried++;
       const next: Assignment = { ...assignment, [axis]: value };
+      // Standing rule, told to the player in the briefing: the one whose alibi breaks is the killer.
+      if (next.culprit !== undefined && next.falseAlibi !== undefined && next.culprit !== next.falseAlibi) continue;
       if (puzzle.clues.some((c) => isViolated(c, next))) continue;
       if (backtrack(axisIndex + 1, next)) return true;
     }

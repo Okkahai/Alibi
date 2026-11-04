@@ -54,7 +54,7 @@ export function Frontispiece({ truth, mode }: { truth: CaseTruth; mode: Mode }) 
 
             <p className="mt-6 max-w-[38rem] text-[1.0625rem] leading-relaxed text-[var(--on-ink-muted)]">
               <span className="text-[var(--on-ink)]">{truth.victim.name}.</span> {truth.victim.description} {suspects.length} persons of interest each swear
-              they were elsewhere. <span className="text-[var(--on-ink)]">One of them is lying.</span>
+              they were elsewhere. <span className="text-[var(--on-ink)]">One of them is lying, and the one whose story breaks is the killer.</span>
             </p>
 
             <dl className="mt-10 grid grid-cols-2 md:grid-cols-4 border-t border-[var(--ink-rule)]">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useGame } from "@/lib/state/game-context";
+import { hintKey, loadHints, nextHint, type HintState } from "@/lib/state/hints";
 import { cellKey, isComplete, nextMark, setMark, type Axis, type Block, type Cells, type Mark } from "@/lib/state/matrix";
 
 interface Saved {
@@ -36,6 +37,20 @@ export default function DeductionPage() {
   const [focus, setFocus] = useState<[number, number]>([0, 0]);
   const [hover, setHover] = useState<[number, number] | null>(null);
   const cellRefs = useRef(new Map<string, HTMLButtonElement>());
+  const [hints, setHints] = useState<HintState>(() => loadHints(truth.id));
+  const [hintText, setHintText] = useState<string | null>(null);
+
+  function askHint() {
+    const h = nextHint(truth, saved.cells, state.discoveredEvidenceIds, hints);
+    if (!h) return;
+    setHintText(h.text);
+    setHints(h.state);
+    try {
+      window.localStorage.setItem(hintKey(truth.id), JSON.stringify(h.state));
+    } catch {
+      // storage blocked: the hint still shows, the count is not kept
+    }
+  }
 
   useEffect(() => {
     try {
@@ -148,7 +163,7 @@ export default function DeductionPage() {
           <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium leading-none">The matrix</h1>
         </div>
         <p className="md:ml-auto md:max-w-[26rem] text-sm text-[var(--muted)]">
-          One person did it, by one method, in one room. Each block asks whether that pairing could be the crime: mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z.
+          One person did it, by one method, in one room, and that person is the one whose alibi breaks. Each block asks whether that pairing could be the crime: mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z.
         </p>
       </header>
 
@@ -255,6 +270,23 @@ export default function DeductionPage() {
         </section>
 
         <section aria-label="Exhibits for reference" className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
+          {truth.deduction.length > 0 && (
+            <div className="mb-8">
+              <h2 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Consulting detective</h2>
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                Stuck? Each request goes one step further: where to look, what it shows, then the mark to make. Each costs 3 points on the finding.
+              </p>
+              <div aria-live="polite">
+                {hintText && <p className="mt-3 display text-xl italic border-l-2 border-[var(--accent)] pl-3">{hintText}</p>}
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <button className="btn" onClick={askHint}>
+                  {hints.last ? "Further hint" : "Ask for a hint"}
+                </button>
+                <span className="label text-[var(--muted)]">{hints.used} used</span>
+              </div>
+            </div>
+          )}
           <h2 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Exhibits on the desk · tap to strike when used</h2>
           {exhibits.length === 0 && (
             <p className="py-4 text-sm text-[var(--muted)]">

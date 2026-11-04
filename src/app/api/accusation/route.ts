@@ -14,6 +14,7 @@ const RequestSchema = z.object({
   motive: z.string(),
   method: z.string(),
   locationId: z.string().optional(),
+  hintsUsed: z.number().int().min(0).max(1000).optional(),
   keyEvidenceIds: z.array(z.string()).default([]),
   reconstructedTimelineEventIds: z.array(z.string()).default([]),
 });
