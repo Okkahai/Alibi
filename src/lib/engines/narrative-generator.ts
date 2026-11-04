@@ -287,7 +287,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     {
       id: "evt_crime",
       time: "22:15",
-      description: `${suspectName.get(culpritId)} used ${methodName.get(puzzle.solution.method)} at ${crimeLocationName} to kill ${victimName}.`,
+      // Never name the culprit or method here: the event is shown in the Chronology once an exhibit places it.
+      description: `${victimName} was killed at ${crimeLocationName}.`,
       locationId: puzzle.solution.location,
       involvedCharacterIds: [culpritId],
       isTrue: true,

@@ -27,7 +27,7 @@ export function SiteHeader({
 
         <div className="ml-auto flex items-center gap-4 md:gap-8 text-[var(--on-ink-muted)]">
           {caseTitle && (
-            <p className="label md:hidden text-[var(--brass-light)]">Nº {caseNumber ?? "—"}</p>
+            <p className="label md:hidden whitespace-nowrap text-[var(--brass-light)]">Nº {caseNumber ?? "—"}</p>
           )}
           {caseTitle && (
             <p className="label hidden md:block truncate max-w-[22rem]">
@@ -37,7 +37,7 @@ export function SiteHeader({
             </p>
           )}
           {progress && (
-            <p className="label flex items-center gap-2" aria-label={`${progress.found} of ${progress.total} exhibits recovered`}>
+            <p className="label flex items-center gap-2 whitespace-nowrap" aria-label={`${progress.found} of ${progress.total} exhibits recovered`}>
               <span className="hidden sm:inline">Exhibits</span>
               <span className="sm:hidden">Ex.</span>
               <span className="text-[var(--on-ink)]">
@@ -48,12 +48,12 @@ export function SiteHeader({
               </span>
             </p>
           )}
-          <Link href="/#archive" className="label min-h-11 flex items-center hover:text-[var(--on-ink)]">
+          <Link href="/#archive" className={`label min-h-11 items-center hover:text-[var(--on-ink)] ${caseTitle ? "hidden sm:flex" : "flex"}`}>
             Archive
           </Link>
           {caseTitle && (
             <button
-              className="label min-h-11 hover:text-[var(--on-ink)]"
+              className="label min-h-11 whitespace-nowrap hover:text-[var(--on-ink)]"
               onClick={() => {
                 window.localStorage.removeItem(CASE_SELECTION_KEY);
                 // Full reload so AppShell's in-memory selection and GameProvider actually reset.

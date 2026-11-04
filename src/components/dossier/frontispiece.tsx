@@ -87,7 +87,7 @@ export function Frontispiece({ truth, mode }: { truth: CaseTruth; mode: Mode }) 
             <Seal caseNumber={meta.number ?? "—"} className="absolute -top-10 -right-1 md:-right-10 w-24 md:w-32 rotate-[-14deg]" />
             <figcaption className="mt-3 text-[0.8125rem] leading-snug text-[var(--on-ink-muted)]">
               <span className="label text-[var(--brass-light)]">Pl. I</span> — Pocket watch recovered with the deceased, its hands at{" "}
-              <time className="text-[var(--on-ink)]">{time}</time>. <i className="display text-base">a</i> crown and bow; <i className="display text-base">b</i> chapter
+              <time className="mono text-[var(--on-ink)]">{time}</time>. <i className="display text-base">a</i> crown and bow; <i className="display text-base">b</i> chapter
               ring; <i className="display text-base">c</i> examining lens.
             </figcaption>
           </figure>
