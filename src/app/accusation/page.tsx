@@ -69,7 +69,7 @@ export default function AccusationPage() {
       <article>
         <header className="on-ink px-5 md:px-8 py-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end relative overflow-hidden">
           <div>
-            <p className="label text-[var(--brass-light)]">Section VII · Finding returned</p>
+            <p className="label text-[var(--brass-light)]">Section VIII · Finding returned</p>
             <h1 className="mt-2 text-[3rem] md:text-[4rem] italic font-medium text-[var(--on-ink)] leading-none">Case closed</h1>
             <p className="mt-4 text-[var(--on-ink-muted)] max-w-[34rem]">
               The person responsible was <span className="text-[var(--on-ink)] display text-2xl italic">{result.reveal.culpritName}</span>.
@@ -145,7 +145,7 @@ export default function AccusationPage() {
     <article>
       <header className="flex flex-col md:flex-row md:items-end gap-3 border-b-2 border-[var(--rule-strong)] pb-4">
         <div>
-          <p className="label text-[var(--copper)]">Section VII · Conclusion</p>
+          <p className="label text-[var(--copper)]">Section VIII · Conclusion</p>
           <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium">Finding of the investigation</h1>
         </div>
         <p className="md:ml-auto md:max-w-[22rem] text-sm text-[var(--muted)]">A finding is submitted once and cannot be withdrawn. Name the person; the rest of the form strengthens the case.</p>
@@ -192,7 +192,18 @@ export default function AccusationPage() {
             <span className="display text-2xl italic text-[var(--copper)]">iii.</span>
             <span className="text-[1.6rem] display">Method</span>
           </span>
-          <textarea value={method} onChange={(e) => setMethod(e.target.value)} rows={3} className={field} />
+          {truth.methods.length > 0 ? (
+            <select value={method} onChange={(e) => setMethod(e.target.value)} className={`${field} min-h-11`}>
+              <option value="">Select the method…</option>
+              {truth.methods.map((m) => (
+                <option key={m.id} value={m.name}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <textarea value={method} onChange={(e) => setMethod(e.target.value)} rows={3} className={field} />
+          )}
         </label>
       </div>
 

@@ -333,6 +333,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     characters,
     timeline,
     evidence,
+    methods: puzzle.methods.map((id) => ({ id, name: methodName.get(id)! })),
     contradictions: [
       {
         id: "contra_culprit_alibi",

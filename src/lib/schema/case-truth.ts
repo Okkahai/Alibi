@@ -143,6 +143,8 @@ export const CaseTruthSchema = z.object({
   timeline: z.array(TimelineEventSchema).min(1),
   evidence: z.array(EvidenceSchema).min(1),
   contradictions: z.array(ContradictionSchema).default([]),
+  /** The method axis of the deduction matrix (generated cases); handcrafted cases may leave it empty. */
+  methods: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
   solution: SolutionSchema,
 });
 export type CaseTruth = z.infer<typeof CaseTruthSchema>;
