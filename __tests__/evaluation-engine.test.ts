@@ -9,6 +9,7 @@ describe("evaluateAccusation", () => {
       culpritId: theVossManorCase.solution.culpritId,
       motive: theVossManorCase.solution.motive,
       method: theVossManorCase.solution.method,
+      locationId: theVossManorCase.solution.locationId,
       keyEvidenceIds: theVossManorCase.solution.keyEvidenceIds,
       reconstructedTimelineEventIds: theVossManorCase.solution.criticalTimelineEventIds,
     };

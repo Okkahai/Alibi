@@ -13,6 +13,7 @@ const RequestSchema = z.object({
   culpritId: z.string(),
   motive: z.string(),
   method: z.string(),
+  locationId: z.string().optional(),
   keyEvidenceIds: z.array(z.string()).default([]),
   reconstructedTimelineEventIds: z.array(z.string()).default([]),
 });

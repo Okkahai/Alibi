@@ -170,7 +170,9 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
         const nameA = nameOf(clue.axisA, clue.valueA);
         const nameB = nameOf(clue.axisB, clue.valueB);
         const positive = names.pick(LINKED_TEMPLATES[`${clue.axisA}:${clue.axisB}`])(nameA, nameB);
-        const text = clue.kind === "linked" ? positive : `It is not true that ${lowercaseFirst(positive)}`;
+        // The culprit:falseAlibi templates ignore the names, so negating them would deny the always-true rule; name the cleared alibi instead.
+        const negative = `${clue.axisA}:${clue.axisB}` === "culprit:falseAlibi" ? `${nameB}'s story is not the one that breaks.` : `It is not true that ${lowercaseFirst(positive)}`;
+        const text = clue.kind === "linked" ? positive : negative;
         return {
           text,
           events: dedupe([eventFor(clue.axisA, clue.valueA), eventFor(clue.axisB, clue.valueB)]),
@@ -333,6 +335,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     characters,
     timeline,
     evidence,
+    methods: puzzle.methods.map((id) => ({ id, name: methodName.get(id)! })),
     contradictions: [
       {
         id: "contra_culprit_alibi",
@@ -347,6 +350,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       culpritId,
       motive: `${suspectName.get(culpritId)} ${culpritRelationship.motiveTemplate(victimName)}.`,
       method: `${suspectName.get(culpritId)} used ${methodName.get(puzzle.solution.method)}.`,
+      locationId: puzzle.solution.location,
       keyEvidenceIds,
       criticalTimelineEventIds: ["evt_crime", "evt_body_found"],
     },

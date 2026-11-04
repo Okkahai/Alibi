@@ -123,6 +123,8 @@ export const SolutionSchema = z.object({
   culpritId: z.string(),
   motive: z.string(),
   method: z.string(),
+  /** Room where the crime happened; graded when present. */
+  locationId: z.string().optional(),
   keyEvidenceIds: z.array(z.string()).min(1),
   /** Ordered timeline event ids that constitute the minimal correct reconstruction. */
   criticalTimelineEventIds: z.array(z.string()).min(1),
@@ -143,6 +145,8 @@ export const CaseTruthSchema = z.object({
   timeline: z.array(TimelineEventSchema).min(1),
   evidence: z.array(EvidenceSchema).min(1),
   contradictions: z.array(ContradictionSchema).default([]),
+  /** The method axis of the deduction matrix (generated cases); handcrafted cases may leave it empty. */
+  methods: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
   solution: SolutionSchema,
 });
 export type CaseTruth = z.infer<typeof CaseTruthSchema>;

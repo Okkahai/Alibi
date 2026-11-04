@@ -42,6 +42,7 @@ export const AccusationSchema = z.object({
   culpritId: z.string(),
   motive: z.string(),
   method: z.string(),
+  locationId: z.string().optional(),
   keyEvidenceIds: z.array(z.string()),
   reconstructedTimelineEventIds: z.array(z.string()),
 });
