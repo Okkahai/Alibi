@@ -11,10 +11,13 @@
 import type { Axis, Clue, PuzzleCase, PuzzleSolution } from "@/lib/schema/puzzle-case";
 import { solve } from "./solver";
 import { createRng } from "./prng";
+import { buildDeductionTrace } from "./deduction-trace";
 
 export interface GeneratePuzzleCaseOptions {
   seed: string;
   suspectCount: number;
+  /** Rules v2: a minimal clue set drawn from all true clues (decoys included), with no forced anchors or "is" clues. */
+  minimal?: boolean;
 }
 
 function otherValues(all: string[], value: string): string[] {
@@ -63,7 +66,69 @@ function buildTrueCluePool(
   return pool;
 }
 
-export function generatePuzzleCase({ seed, suspectCount }: GeneratePuzzleCaseOptions): PuzzleCase {
+const PAIR_AXES: [Axis, Axis][] = [
+  ["culprit", "method"],
+  ["culprit", "location"],
+  ["method", "location"],
+];
+
+/**
+ * Rules v2 pool: every true clue, including pair clues about wrong values
+ * ("if Bram did it, it was the cellar" is true when Bram is innocent). Without
+ * these, merely being named in an if/either clue gives the answer away.
+ */
+function buildFullTruePool(solution: PuzzleSolution, suspects: string[], methods: string[], locations: string[]): Clue[] {
+  const domain: Record<Axis, string[]> = { culprit: suspects, method: methods, location: locations, falseAlibi: suspects };
+  const answer: Record<Axis, string> = { culprit: solution.culprit, method: solution.method, location: solution.location, falseAlibi: solution.falseAlibi };
+  const pool: Clue[] = [];
+  for (const axis of ["culprit", "method", "location", "falseAlibi"] as Axis[]) {
+    for (const value of otherValues(domain[axis], answer[axis])) pool.push({ kind: "not", axis, value });
+  }
+  for (const [axisA, axisB] of PAIR_AXES) {
+    for (const valueA of domain[axisA]) {
+      for (const valueB of domain[axisB]) {
+        const a = valueA === answer[axisA];
+        const b = valueB === answer[axisB];
+        if (a === b) pool.push({ kind: "linked", axisA, valueA, axisB, valueB });
+        if (!(a && b)) pool.push({ kind: "not-linked", axisA, valueA, axisB, valueB });
+        if (!a || b) pool.push({ kind: "conditional", ifAxis: axisA, ifValue: valueA, thenAxis: axisB, thenValue: valueB, thenNegated: false });
+      }
+    }
+  }
+  return pool;
+}
+
+/**
+ * The "who gets named" shortcut: if the if/either/not-both exhibits mention
+ * only the answer, or every option but the answer — or the exhibits as a whole
+ * mention every option but the answer — a player can read it off without
+ * deducing anything.
+ */
+export function namesGiveAnswerAway({ suspects, methods, locations, clues, solution }: PuzzleCase): boolean {
+  const named: Record<string, Set<string>> = { culprit: new Set(), method: new Set(), location: new Set() };
+  const add = (axis: Axis, value: string) => named[axis === "falseAlibi" ? "culprit" : axis].add(value);
+  for (const c of clues) {
+    if (c.kind === "linked" || c.kind === "not-linked") {
+      add(c.axisA, c.valueA);
+      add(c.axisB, c.valueB);
+    } else if (c.kind === "conditional") {
+      add(c.ifAxis, c.ifValue);
+      add(c.thenAxis, c.thenValue);
+    }
+  }
+  const answer: Record<string, string> = { culprit: solution.culprit, method: solution.method, location: solution.location };
+  const size: Record<string, number> = { culprit: suspects.length, method: methods.length, location: locations.length };
+  // Counting "not" exhibits too: the one option no exhibit ever mentions (e.g. the one suspect with no Chronology entry).
+  const mentioned: Record<string, Set<string>> = { culprit: new Set(named.culprit), method: new Set(named.method), location: new Set(named.location) };
+  for (const c of clues) if (c.kind === "not" || c.kind === "is") mentioned[c.axis === "falseAlibi" ? "culprit" : c.axis].add(c.value);
+  return Object.keys(named).some(
+    (axis) =>
+      (named[axis].has(answer[axis]) ? named[axis].size === 1 : named[axis].size === size[axis] - 1) ||
+      (!mentioned[axis].has(answer[axis]) && mentioned[axis].size === size[axis] - 1)
+  );
+}
+
+export function generatePuzzleCase({ seed, suspectCount, minimal = false }: GeneratePuzzleCaseOptions): PuzzleCase {
   const rng = createRng(seed);
   const suspects = Array.from({ length: suspectCount }, (_, i) => `suspect_${i}`);
   const methods = Array.from({ length: suspectCount }, (_, i) => `method_${i}`);
@@ -76,6 +141,8 @@ export function generatePuzzleCase({ seed, suspectCount }: GeneratePuzzleCaseOpt
     location: rng.pick(locations),
     falseAlibi: culprit,
   };
+
+  if (minimal) return generateMinimal(rng, seed, suspects, methods, locations, solution);
 
   const pool = buildTrueCluePool(solution, suspects, methods, locations);
 
@@ -104,4 +171,39 @@ export function generatePuzzleCase({ seed, suspectCount }: GeneratePuzzleCaseOpt
   }
 
   return { suspects, methods, locations, clues, solution };
+}
+
+/** Rules v2: grow from the full true pool, prune to a minimal set, and redraw if the names give the answer away. */
+function generateMinimal(
+  rng: ReturnType<typeof createRng>,
+  seed: string,
+  suspects: string[],
+  methods: string[],
+  locations: string[],
+  solution: PuzzleSolution
+): PuzzleCase {
+  const pool = buildFullTruePool(solution, suspects, methods, locations);
+  const isUnique = (clues: Clue[]) => solve({ suspects, methods, locations, clues }).isUnique;
+  let clues: Clue[] = [];
+  for (let attempt = 0; attempt < 400; attempt++) {
+    clues = [];
+    for (const clue of rng.sample(pool, pool.length)) {
+      clues.push(clue);
+      if (isUnique(clues)) break;
+    }
+    // Drop each clue, in seeded order, whenever uniqueness survives without it.
+    for (const clue of rng.sample(clues, clues.length)) {
+      const without = clues.filter((c) => c !== clue);
+      if (isUnique(without)) clues = without;
+    }
+    if (namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) continue;
+    // Redraw sets whose deduction needs more than three exhibits at once: no hint could explain that step.
+    if (buildDeductionTrace({ suspects, methods, locations, clues }).every((step) => step.clues.length <= 3)) break;
+  }
+  const result = solve({ suspects, methods, locations, clues });
+  if (!result.isUnique || JSON.stringify(result.solutions[0]) !== JSON.stringify(solution) || namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) {
+    throw new Error(`generatePuzzleCase: seed "${seed}" found no fair minimal clue set.`);
+  }
+  // Shuffle the exhibit order: otherwise the last exhibit is the one that made the answer unique.
+  return { suspects, methods, locations, clues: rng.sample(clues, clues.length), solution };
 }

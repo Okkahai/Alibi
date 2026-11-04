@@ -105,6 +105,9 @@ const CONDITIONAL_TEMPLATES: Array<(ifNoun: string, ifName: string, thenNoun: st
     `Should ${ifNoun} turn out to be ${ifName}, ${thenNoun} would ${negated ? "not be" : "have to be"} ${thenName}.`,
 ];
 
+/** First daily generated under rules v2: pruned (harder) clue sets, no repeated first or last names. */
+export const RULES_V2_FROM = "2026-11-06";
+
 export interface GenerateCaseOptions {
   seed: string;
   difficulty: Difficulty;
@@ -115,10 +118,18 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   const countRng = createRng(seed);
   const suspectCount = min + countRng.int(max - min + 1);
 
-  const puzzle = generatePuzzleCase({ seed: `${seed}:puzzle`, suspectCount });
+  // Published dailies are frozen (docs/DAILY_SYSTEM.md): rule changes apply to dailies from their effective date, and to every practice seed.
+  const isDaily = /^\d{4}-\d{2}-\d{2}$/.test(seed);
+  const v2 = !isDaily || seed >= RULES_V2_FROM;
+  const puzzle = generatePuzzleCase({ seed: `${seed}:puzzle`, suspectCount, minimal: v2 });
   const names = createRng(`${seed}:narrative`);
 
-  const namePool = names.sample(FIRST_NAMES.flatMap((f) => LAST_NAMES.map((l) => `${f} ${l}`)), suspectCount + 1);
+  const namePool = v2
+    ? (() => {
+        const last = names.sample(LAST_NAMES, suspectCount + 1);
+        return names.sample(FIRST_NAMES, suspectCount + 1).map((f, i) => `${f} ${last[i]}`);
+      })()
+    : names.sample(FIRST_NAMES.flatMap((f) => LAST_NAMES.map((l) => `${f} ${l}`)), suspectCount + 1);
   const victimName = namePool[0];
   const suspectName = new Map(puzzle.suspects.map((id, i) => [id, namePool[i + 1]]));
 
@@ -144,7 +155,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
 
   function eventFor(axis: Axis, value: string): string {
     if (axis === "culprit" || axis === "falseAlibi") {
-      return value === culpritId ? "evt_crime" : `evt_alibi_${value}`;
+      // v2: every named suspect, the culprit included, unlocks their own whereabouts, so a missing entry is no tell.
+      return value === culpritId && !v2 ? "evt_crime" : `evt_alibi_${value}`;
     }
     return "evt_crime";
   }
@@ -215,12 +227,17 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
 
   // Evidence ids rendering the two culprit-implicating anchor clues (always
   // present — see puzzle-generator.ts) — what breaks the culprit's lie.
-  const keyEvidenceIds = evidence
+  const deduction = buildDeductionTrace(puzzle).map(({ clues, ...step }) => ({ ...step, evidenceIds: clues.map((n) => evidence[n].id) }));
+  const anchorEvidenceIds = evidence
     .filter((_, i) => {
       const c = puzzle.clues[i];
       return c.kind === "linked" && c.axisA === "culprit" && (c.axisB === "method" || c.axisB === "location");
     })
     .map((e) => e.id);
+  // Rules v2 (and any case without anchors): the key exhibits are the ones the trace uses to settle the culprit.
+  const keyEvidenceIds = anchorEvidenceIds.length && !v2
+    ? anchorEvidenceIds
+    : [...new Set(deduction.filter((s) => s.axis === "culprit").flatMap((s) => s.evidenceIds))];
 
   const characters: Character[] = puzzle.suspects.map((id) => {
     const isCulprit = id === culpritId;
@@ -305,6 +322,20 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
         isTrue: true,
       })
     ),
+    // v2: the culprit's earlier whereabouts, worded like everyone else's. True (their lie is "the entire
+    // evening"), and not tagged with the culprit so knownEvents does not redact it into a tell.
+    ...(v2
+      ? [
+          {
+            id: `evt_alibi_${culpritId}`,
+            time: `2${names.int(2)}:${names.pick(["00", "15", "30", "45"])}`,
+            description: `${suspectName.get(culpritId)} was at ${locationName.get(culpritFakeAlibiLocation)} earlier in the evening.`,
+            locationId: culpritFakeAlibiLocation,
+            involvedCharacterIds: [],
+            isTrue: true,
+          } satisfies TimelineEvent,
+        ]
+      : []),
     {
       id: "evt_body_found",
       time: "23:30",
@@ -336,11 +367,13 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     timeline,
     evidence,
     methods: puzzle.methods.map((id) => ({ id, name: methodName.get(id)! })),
-    deduction: buildDeductionTrace(puzzle).map(({ clues, ...step }) => ({ ...step, evidenceIds: clues.map((i) => evidence[i].id) })),
+    deduction,
     contradictions: [
       {
         id: "contra_culprit_alibi",
-        description: `${suspectName.get(culpritId)} claims to have been elsewhere, but the evidence places them at ${crimeLocationName} during the critical window.`,
+        description: v2
+          ? `${suspectName.get(culpritId)} claims to have been elsewhere, but once the exhibits clear everyone else, theirs is the only story left that cannot be true.`
+          : `${suspectName.get(culpritId)} claims to have been elsewhere, but the evidence places them at ${crimeLocationName} during the critical window.`,
         characterId: culpritId,
         claim: `lie_${culpritId}_alibi`,
         truth: "evt_crime",

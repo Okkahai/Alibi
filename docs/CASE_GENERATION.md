@@ -122,4 +122,30 @@ The reveal lists the full trace under "How the exhibits decide it". Daily cases 
   - A step whose exhibit is still unexamined stays at level 1, and the hint names no room. This stops hints acting as an oracle or leaking a room.
   - Hints cost 3 points each, with no cap.
 - **Year-long check.** `__tests__/daily-window.test.ts` generates 365 dailies from launch and checks that the clue-only trace confirms the true culprit and room.
-- **Difficulty is still low.** Every elimination needs only one exhibit, about 12 per case. A harder clue selection is planned for the content phase.
+- **Difficulty**: addressed by rules v2 below.
+
+## Rules v2: minimal clue sets (dailies from 2026-11-06, every practice seed)
+
+Under v1, every case shipped about 20 exhibits. Two of them were forced "anchors" that tied the culprit to the method and the room, and most of the rest were redundant. The answer fell out of the first two exhibits plus a list of alibis.
+
+Rules v2 (`RULES_V2_FROM` in `narrative-generator.ts`, `generateMinimal` in `puzzle-generator.ts`) changes four things:
+
+- **No forced anchors and no `is` clues.** No exhibit states an answer outright.
+- **Decoys.** The clue pool holds every true clue, including if/either/not-both clues about wrong values. For example, "if Bram did it, it was the cellar" is true whenever Bram is innocent. Without these, being named in such an exhibit meant being the answer (QA found this in 97–100% of cases).
+- **Pruning.** After the set first becomes unique, each clue is tried for removal in seeded order. It is dropped if the answer stays unique, so every exhibit is needed. Typical counts: easy 5–8, medium 7–15, hard 9–21. Many steps now need two or more exhibits together.
+- **Shortcut check.** `namesGiveAnswerAway` rejects a set, and the generator redraws it, in two cases. The first is when the if/either exhibits name only the answer, or every option except the answer, on any axis. The second is when the exhibits as a whole mention every option except the answer, which would make it the one suspect with no Chronology entry.
+- **Explainable steps.** A set is redrawn if some deduction step needs more than three exhibits at once. The trace tries single exhibits, then pairs, then triples. The exhibit order is shuffled, so the last exhibit is not the one that made the answer unique.
+- **Chronology.** Every suspect, the culprit included, has an "earlier in the evening" whereabouts entry, unlocked by any exhibit that names them. The culprit's entry is true: their lie is "the entire evening".
+
+Names are also drawn separately for first and last names, so no two people in a case share either one.
+
+Key exhibits are the ones the deduction trace uses to settle the culprit, and the culprit's contradiction says so ("once the exhibits clear everyone else…"). The old "some exhibit names the culprit" validator rule is waived when the trace confirms the culprit.
+
+Known v2 limits:
+
+- Mild statistical tells remain. The room or method named most often in "then" slots is the answer about 1.5–1.7× more often than chance (about 40% against 25%).
+- Room names have no article ("happened at Billiard Room").
+- A few "not" templates ("no signs of a struggle") read loosely beside poison or smoke.
+- "Exhibits relied upon" does not penalise ticking extras.
+
+Published dailies (2026-11-01 to 11-05) keep v1, and `daily-frozen.test.ts` enforces that.
