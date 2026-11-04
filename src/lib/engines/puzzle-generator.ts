@@ -78,12 +78,22 @@ export function generatePuzzleCase({ seed, suspectCount }: GeneratePuzzleCaseOpt
   };
 
   const pool = buildTrueCluePool(solution, suspects, methods, locations);
-  const shuffledPool = rng.sample(pool, pool.length);
+
+  // Always include the two clues that directly tie the culprit to a method/location
+  // (not merely eliminate everyone else) — the deduction should end on a positive
+  // link, not pure elimination, and downstream narrative rendering needs at least
+  // one clue that names the culprit to build the accusation's key evidence from.
+  const anchorClues = pool.filter(
+    (c): c is Extract<Clue, { kind: "linked" }> =>
+      c.kind === "linked" && c.axisA === "culprit" && (c.axisB === "method" || c.axisB === "location")
+  );
+  const restPool = pool.filter((c) => !anchorClues.includes(c as never));
+  const shuffledPool = [...anchorClues, ...rng.sample(restPool, restPool.length)];
 
   const clues: Clue[] = [];
   for (const clue of shuffledPool) {
     clues.push(clue);
-    if (solve({ suspects, methods, locations, clues }).isUnique) break;
+    if (clues.length >= anchorClues.length && solve({ suspects, methods, locations, clues }).isUnique) break;
   }
 
   const result = solve({ suspects, methods, locations, clues });

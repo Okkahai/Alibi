@@ -72,6 +72,18 @@ export const FALLBACKS: Array<"deny" | "explain" | "panic" | "change_story" | "r
   "deny", "explain", "panic", "change_story", "reveal_information",
 ];
 
+/** Distinct short method/weapon noun phrases, for the solver-backed generator's "method" axis — one per suspect, up to the hard-tier max of 8. */
+export const METHOD_NAMES = [
+  "a vial of poisoned brandy",
+  "the brass letter opener",
+  "a blow from the fireplace poker",
+  "a push from the terrace railing",
+  "a length of mooring rope",
+  "a shard from a broken decanter",
+  "smoke from a smothered fire",
+  "a fatal dose from the medicine cabinet",
+];
+
 export const EVIDENCE_FLAVORS = {
   implicating: [
     { type: "fingerprint" as const, description: (name: string) => `${name}'s fingerprints, and only theirs, are found on the object used at the scene.` },
