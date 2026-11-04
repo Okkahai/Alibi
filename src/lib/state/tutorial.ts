@@ -53,7 +53,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
 ];
 
-/** A ✓ anywhere but the answer, or a ✕ on the answer, contradicts the exhibits. */
+/** A ✓ anywhere but the answer contradicts the exhibits. A ✕ is not flagged: it is the first tap on the way to ✓. */
 export function tutorialMistake(cells: Cells): boolean {
-  return Object.entries(cells).some(([key, m]) => (key === k("cora", "library") ? m === "x" : m === "o"));
+  return Object.entries(cells).some(([key, m]) => m === "o" && key !== k("cora", "library"));
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cellKey, nextMark, setMark, type Cells } from "@/lib/state/matrix";
 import { TUTORIAL_BLOCK, TUTORIAL_STEPS, tutorialMistake } from "@/lib/state/tutorial";
 
@@ -10,8 +10,13 @@ export default function TutorialPage() {
   const [step, setStep] = useState(0);
   const { rows, cols } = TUTORIAL_BLOCK;
   const current = TUTORIAL_STEPS[step];
-  const finished = step === TUTORIAL_STEPS.length - 1 && current.done(cells);
-  const ready = current.done(cells) && !tutorialMistake(cells);
+  const finished = step === TUTORIAL_STEPS.length - 1 && TUTORIAL_STEPS.every((s) => s.done(cells)) && !tutorialMistake(cells);
+  // Every lesson so far must still hold, not only the current one.
+  const ready = TUTORIAL_STEPS.slice(0, step + 1).every((s) => s.done(cells)) && !tutorialMistake(cells);
+  const exhibitRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (step > 0) exhibitRef.current?.focus();
+  }, [step]);
   const exhibits = TUTORIAL_STEPS.slice(1, step + 1);
 
   return (
@@ -27,20 +32,20 @@ export default function TutorialPage() {
       </header>
 
       <div className="mt-8 grid gap-10 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_auto] items-start">
-        <section aria-live="polite">
+        <section>
           {current.exhibit && (
-            <p className="flex gap-4 items-baseline border-b border-[var(--border)] pb-3">
+            <p ref={exhibitRef} tabIndex={-1} aria-live="polite" className="flex gap-4 items-baseline border-b border-[var(--border)] pb-3">
               <span className="mono text-[var(--copper)] shrink-0 whitespace-nowrap">EX-{String(step).padStart(2, "0")}</span>
               <span className="display text-2xl italic">&ldquo;{current.exhibit}&rdquo;</span>
             </p>
           )}
           <p className="mt-4 text-lg max-w-[40rem]">{current.lesson}</p>
-          {tutorialMistake(cells) && <p className="mt-3 text-[var(--danger)]">One of your marks goes against the exhibits so far. Tap it to change it.</p>}
+          {tutorialMistake(cells) && <p role="alert" className="mt-3 text-[var(--danger)]">One of your marks goes against the exhibits so far. Tap it to change it.</p>}
           {finished ? (
             <div className="mt-6 border-l-4 border-[var(--confirmed)] pl-4">
-              <p className="display text-2xl italic text-[var(--confirmed)]">Cora Lind, in the Library.</p>
+              <p className="display text-2xl italic text-[var(--confirmed)]" aria-live="polite">Cora Lind, in the Library.</p>
               <p className="mt-2 max-w-[40rem]">
-                That is the whole method. A daily case adds a block for the method and more exhibits, but every one works like these: read it, cross out what it rules out, and the answer is what survives. Stuck? The matrix has hints.
+                Cora&rsquo;s alibi never cracked on its own: she is the one whose story must be false, because everyone else&rsquo;s held. That is the whole method. A daily case adds a block for the method and more exhibits, but every one works like these: read it, cross out what it rules out, and the answer is what survives. Stuck? The matrix has hints.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link href="/" className="btn btn-primary">
@@ -59,7 +64,7 @@ export default function TutorialPage() {
             </div>
           ) : (
             <div className="mt-6 flex items-center gap-3">
-              <button className="btn btn-primary" disabled={!ready} onClick={() => setStep((s) => s + 1)}>
+              <button className="btn btn-primary whitespace-nowrap" disabled={!ready} onClick={() => setStep((s) => s + 1)}>
                 {step === 0 ? "Show the first exhibit" : "Next exhibit"} →
               </button>
               {!ready && step > 0 && <span className="label text-[var(--muted)]">Mark the grid to continue</span>}
@@ -80,7 +85,7 @@ export default function TutorialPage() {
         </section>
 
         <section aria-label="Practice matrix" className="min-w-0 overflow-x-auto">
-          <table className="border border-[var(--rule-strong)] bg-[var(--surface)]" role="grid">
+          <table className="border border-[var(--rule-strong)] bg-[var(--surface)]">
             <thead>
               <tr>
                 <th className="on-ink p-3 text-left align-bottom">
