@@ -163,7 +163,7 @@ export default function DeductionPage() {
           <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium leading-none">The matrix</h1>
         </div>
         <p className="md:ml-auto md:max-w-[26rem] text-sm text-[var(--muted)]">
-          One person did it, by one method, in one room, and that person is the one whose alibi breaks. Each block asks whether that pairing could be the crime: mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z.
+          One person did it, by one method, in one room, and that person is the one whose alibi breaks. Each block asks whether that pairing could be the crime: mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z. New here? <Link href="/tutorial" className="underline underline-offset-4">Two-minute walkthrough</Link>.
         </p>
       </header>
 
