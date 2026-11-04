@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { cases } from "@/lib/db/schema";
 import { CaseTruthSchema } from "@/lib/schema/case-truth";
-import { generateCase } from "@/lib/engines/case-generator";
+import { generateCase } from "@/lib/engines/narrative-generator";
 import { getDailyCaseId, getUtcDateString, DAILY_DIFFICULTY } from "@/lib/engines/daily-case";
 
 /**

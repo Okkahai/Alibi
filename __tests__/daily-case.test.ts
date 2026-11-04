@@ -8,7 +8,7 @@ import {
   DAILY_DIFFICULTY,
 } from "@/lib/engines/daily-case";
 import { resolveCaseTruth } from "@/lib/state/case-select";
-import { generateCase } from "@/lib/engines/case-generator";
+import { generateCase } from "@/lib/engines/narrative-generator";
 import { evaluateAccusation } from "@/lib/engines/evaluation-engine";
 
 describe("daily-case", () => {

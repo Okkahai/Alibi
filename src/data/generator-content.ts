@@ -1,5 +1,5 @@
 /**
- * Content banks for the procedural Case Generator (src/lib/engines/case-generator.ts).
+ * Content banks for the procedural Case Generator (src/lib/engines/narrative-generator.ts).
  * These supply names/phrasing variety; the generator's structural logic is
  * what guarantees validity (see docs/02-case-truth-schema.md and
  * case-validators.ts) — this file has no bearing on solvability.
@@ -70,6 +70,18 @@ export const OTHER_LOCATION_NAMES = [
 
 export const FALLBACKS: Array<"deny" | "explain" | "panic" | "change_story" | "reveal_information"> = [
   "deny", "explain", "panic", "change_story", "reveal_information",
+];
+
+/** Distinct short method/weapon noun phrases, for the solver-backed generator's "method" axis — one per suspect, up to the hard-tier max of 8. */
+export const METHOD_NAMES = [
+  "a vial of poisoned brandy",
+  "the brass letter opener",
+  "a blow from the fireplace poker",
+  "a push from the terrace railing",
+  "a length of mooring rope",
+  "a shard from a broken decanter",
+  "smoke from a smothered fire",
+  "a fatal dose from the medicine cabinet",
 ];
 
 export const EVIDENCE_FLAVORS = {

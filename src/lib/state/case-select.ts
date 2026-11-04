@@ -1,5 +1,5 @@
 import type { CaseTruth, Difficulty } from "@/lib/schema/case-truth";
-import { generateCase } from "@/lib/engines/case-generator";
+import { generateCase } from "@/lib/engines/narrative-generator";
 import { getCaseTruth } from "@/data/cases";
 
 export type CaseSelection = { kind: "static"; id: string } | { kind: "generated"; seed: string; difficulty: Difficulty };

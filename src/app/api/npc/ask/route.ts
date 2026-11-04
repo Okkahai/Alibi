@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCaseTruth } from "@/data/cases";
-import { generateCase } from "@/lib/engines/case-generator";
+import { generateCase } from "@/lib/engines/narrative-generator";
 import { DifficultySchema } from "@/lib/schema/case-truth";
 import { askNpc } from "@/lib/engines/npc-dialogue-engine";
 import { getCachedReply, setCachedReply } from "@/lib/engines/dialogue-cache";
