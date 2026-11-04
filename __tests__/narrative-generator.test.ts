@@ -50,4 +50,12 @@ describe("generateCase (solver-backed narrative generator)", () => {
     // would collapse to ~2 distinct strings; several templates means more.
     expect(keyEvidenceTexts.size).toBeGreaterThan(3);
   });
+
+  it("never negates the always-true culprit/alibi rule, and records the crime room for grading", () => {
+    for (let i = 0; i < 40; i++) {
+      const truth = generateCase({ seed: `neg-${i}`, difficulty: "hard" });
+      for (const ev of truth.evidence) expect(ev.description).not.toMatch(/It is not true that (the culprit|whoever is lying)/i);
+      expect(truth.locations.map((l) => l.id)).toContain(truth.solution.locationId);
+    }
+  });
 });

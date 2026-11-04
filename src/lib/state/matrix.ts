@@ -48,11 +48,16 @@ export function setMark(cells: Cells, block: Block, rowId: string, colId: string
   return next;
 }
 
-/** Every row and column of every block holds exactly one ✓. */
+/**
+ * The case has one crime: one person, one method, one room. The grid is
+ * solved when every block holds exactly one ✓ and the blocks agree on it
+ * (the person ticked against a method is the person ticked against a room).
+ */
 export function isComplete(cells: Cells, blocks: Block[]): boolean {
-  return blocks.every(
-    (b) =>
-      b.rows.items.every((r) => b.cols.items.filter((c) => cells[cellKey(b.rows.key, r.id, b.cols.key, c.id)] === "o").length === 1) &&
-      b.cols.items.every((c) => b.rows.items.filter((r) => cells[cellKey(b.rows.key, r.id, b.cols.key, c.id)] === "o").length === 1)
-  );
+  const chosen = new Map<string, string>();
+  const agree = (axis: string, id: string) => (chosen.get(axis) ?? id) === id && (chosen.set(axis, id), true);
+  return blocks.every((b) => {
+    const ticks = b.rows.items.flatMap((r) => b.cols.items.filter((c) => cells[cellKey(b.rows.key, r.id, b.cols.key, c.id)] === "o").map((c) => [r.id, c.id]));
+    return ticks.length === 1 && agree(b.rows.key, ticks[0][0]) && agree(b.cols.key, ticks[0][1]);
+  });
 }

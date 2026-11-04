@@ -118,6 +118,20 @@ export default function DeductionPage() {
     if (k === "backspace" || k === "delete") return apply(p, undefined);
   }
 
+  useEffect(() => {
+    const onWindowKey = (e: globalThis.KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!(e.ctrlKey || e.metaKey) || t?.closest("input, textarea, select, [contenteditable]") || t?.closest("[data-matrix-cell]")) return;
+      const k = e.key.toLowerCase();
+      if (k !== "z" && k !== "y") return;
+      e.preventDefault();
+      if (k === "z" && !e.shiftKey) undo();
+      else redo();
+    };
+    window.addEventListener("keydown", onWindowKey);
+    return () => window.removeEventListener("keydown", onWindowKey);
+  });
+
   const complete = isComplete(saved.cells, blocks);
   const exhibits = useMemo(
     () => truth.evidence.map((ev, i) => ({ ev, no: `EX-${String(i + 1).padStart(2, "0")}` })).filter(({ ev }) => state.discoveredEvidenceIds.includes(ev.id)),
@@ -134,7 +148,7 @@ export default function DeductionPage() {
           <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium leading-none">The matrix</h1>
         </div>
         <p className="md:ml-auto md:max-w-[26rem] text-sm text-[var(--muted)]">
-          Each person used one method in one room. Mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z.
+          One person did it, by one method, in one room. Each block asks whether that pairing could be the crime: mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z.
         </p>
       </header>
 
@@ -153,6 +167,7 @@ export default function DeductionPage() {
             </label>
             <button
               className="btn ml-auto"
+              disabled={!Object.keys(saved.cells).length}
               onClick={() => {
                 setHistory((h) => ({ past: [...h.past, saved.cells], future: [] }));
                 setSaved((s) => ({ ...s, cells: {} }));
@@ -207,10 +222,11 @@ export default function DeductionPage() {
                               setFocus([r, c]);
                               apply(p, nextMark(mark));
                             }}
+                            data-matrix-cell
                             onKeyDown={(e) => onKey(e, r, c)}
                             onMouseEnter={() => setHover([r, c])}
                             onFocus={() => setFocus([r, c])}
-                            className={`${cellBase} ${lit ? "bg-[var(--surface-raised)]" : ""} ${mark === "o" ? "text-[var(--confirmed)] font-bold" : mark === "x" ? "text-[var(--excluded)]" : ""}`}
+                            className={`${cellBase} ${lit ? "bg-[var(--surface-raised)]" : ""} ${mark === "o" ? "text-[var(--confirmed)] font-bold" : mark === "x" ? "text-[var(--muted)]" : ""}`}
                           >
                             {mark === "o" ? "✓" : mark === "x" ? "✕" : ""}
                           </button>
@@ -225,8 +241,8 @@ export default function DeductionPage() {
 
           <p className="mt-3 label text-[var(--muted)]" aria-live="polite">
             {complete ? (
-              <span className="text-[var(--confirmed)]">
-                ✓ Every pairing resolved.{" "}
+              <span className="block border-l-4 border-[var(--confirmed)] pl-3 py-2 text-base normal-case tracking-normal text-[var(--foreground)]">
+                <strong className="display text-xl italic text-[var(--confirmed)]">The grid names one person, one method, one room.</strong>{" "}
                 <Link href="/accusation" className="underline underline-offset-4">
                   Proceed to the conclusion →
                 </Link>
@@ -256,7 +272,7 @@ export default function DeductionPage() {
                     className="w-full text-left py-2.5 grid grid-cols-[3.5rem_1fr] gap-2 min-h-11"
                   >
                     <span className="mono text-sm text-[var(--copper)]">{no}</span>
-                    <span className={struck ? "line-through text-[var(--excluded)]" : ""}>{ev.description}</span>
+                    <span className={struck ? "line-through text-[var(--muted)]" : ""}>{ev.description}</span>
                   </button>
                 </li>
               );

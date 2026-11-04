@@ -19,11 +19,19 @@ describe("deduction matrix", () => {
     expect(cells[cellKey("s", "s1", "m", "m1")]).toBeUndefined();
   });
 
-  it("without propagation only the clicked cell changes, and completion needs one ✓ per row and column", () => {
+  it("without propagation only the clicked cell changes; one ✓ per block completes it", () => {
     let cells = setMark({}, block, "s0", "m0", "o", false);
     expect(Object.keys(cells)).toHaveLength(1);
-    expect(isComplete(cells, [block])).toBe(false);
-    cells = setMark(cells, block, "s1", "m1", "o", false);
     expect(isComplete(cells, [block])).toBe(true);
+    cells = setMark(cells, block, "s1", "m1", "o", false);
+    expect(isComplete(cells, [block])).toBe(false);
+  });
+
+  it("completion requires the blocks to agree on the single crime", () => {
+    const s = axis("s", 2), m = axis("m", 2), l = axis("l", 2);
+    const blocks: Block[] = [{ rows: s, cols: m }, { rows: s, cols: l }, { rows: l, cols: m }];
+    const base = { [cellKey("s", "s0", "m", "m1")]: "o" as const, [cellKey("l", "l1", "m", "m1")]: "o" as const };
+    expect(isComplete({ ...base, [cellKey("s", "s1", "l", "l1")]: "o" }, blocks)).toBe(false);
+    expect(isComplete({ ...base, [cellKey("s", "s0", "l", "l1")]: "o" }, blocks)).toBe(true);
   });
 });

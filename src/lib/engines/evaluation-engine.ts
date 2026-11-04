@@ -10,6 +10,8 @@ export interface ScoreBreakdown {
   culprit: { correct: boolean; points: number };
   motive: { correct: boolean; points: number };
   method: { correct: boolean; points: number };
+  /** Present only when the case records the crime room. */
+  location?: { correct: boolean; points: number };
   keyEvidence: { matched: string[]; missed: string[]; extra: string[]; points: number };
   timeline: { matched: string[]; missed: string[]; points: number };
   totalPoints: number;
@@ -21,6 +23,7 @@ const WEIGHTS = {
   culprit: 40,
   motive: 15,
   method: 15,
+  location: 10,
   keyEvidence: 20,
   timeline: 10,
 };
@@ -57,16 +60,20 @@ export function evaluateAccusation(truth: CaseTruth, accusation: Accusation): Sc
   const culpritPoints = culpritCorrect ? WEIGHTS.culprit : 0;
   const motivePoints = motiveCorrect ? WEIGHTS.motive : 0;
   const methodPoints = methodCorrect ? WEIGHTS.method : 0;
+  const gradesLocation = solution.locationId !== undefined;
+  const locationCorrect = gradesLocation && accusation.locationId === solution.locationId;
+  const locationPoints = locationCorrect ? WEIGHTS.location : 0;
   const keyEvidencePoints = Math.round(evidenceRatio * WEIGHTS.keyEvidence);
   const timelinePoints = Math.round(timelineRatio * WEIGHTS.timeline);
 
-  const totalPoints = culpritPoints + motivePoints + methodPoints + keyEvidencePoints + timelinePoints;
-  const maxPoints = WEIGHTS.culprit + WEIGHTS.motive + WEIGHTS.method + WEIGHTS.keyEvidence + WEIGHTS.timeline;
+  const totalPoints = culpritPoints + motivePoints + methodPoints + locationPoints + keyEvidencePoints + timelinePoints;
+  const maxPoints = WEIGHTS.culprit + WEIGHTS.motive + WEIGHTS.method + (gradesLocation ? WEIGHTS.location : 0) + WEIGHTS.keyEvidence + WEIGHTS.timeline;
 
   return {
     culprit: { correct: culpritCorrect, points: culpritPoints },
     motive: { correct: motiveCorrect, points: motivePoints },
     method: { correct: methodCorrect, points: methodPoints },
+    ...(gradesLocation && { location: { correct: locationCorrect, points: locationPoints } }),
     keyEvidence: { matched: matchedEvidence, missed: missedEvidence, extra: extraEvidence, points: keyEvidencePoints },
     timeline: { matched: matchedTimeline, missed: missedTimeline, points: timelinePoints },
     totalPoints,

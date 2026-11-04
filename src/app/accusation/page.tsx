@@ -10,6 +10,7 @@ interface ScoreResponse {
     culprit: { correct: boolean; points: number };
     motive: { correct: boolean; points: number };
     method: { correct: boolean; points: number };
+    location?: { correct: boolean; points: number };
     keyEvidence: { matched: string[]; missed: string[]; extra: string[]; points: number };
     timeline: { matched: string[]; missed: string[]; points: number };
     totalPoints: number;
@@ -35,6 +36,7 @@ export default function AccusationPage() {
   const [culpritId, setCulpritId] = useState("");
   const [motive, setMotive] = useState("");
   const [method, setMethod] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [keyEvidenceIds, setKeyEvidenceIds] = useState<string[]>([]);
   const [timelineEventIds, setTimelineEventIds] = useState<string[]>([]);
   const [result, setResult] = useState<ScoreResponse | null>(null);
@@ -48,7 +50,7 @@ export default function AccusationPage() {
   async function submit() {
     if (!culpritId || submitting) return;
     setSubmitting(true);
-    const accusation = { culpritId, motive, method, keyEvidenceIds, reconstructedTimelineEventIds: timelineEventIds };
+    const accusation = { culpritId, motive, method, locationId: locationId || undefined, keyEvidenceIds, reconstructedTimelineEventIds: timelineEventIds };
     try {
       const res = await fetch("/api/accusation", {
         method: "POST",
@@ -81,10 +83,11 @@ export default function AccusationPage() {
           </p>
         </header>
 
-        <dl className="grid grid-cols-2 sm:grid-cols-5 border-b-2 border-[var(--rule-strong)]">
+        <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-b-2 border-[var(--rule-strong)]">
           <Score label="Culprit" points={result.score.culprit.points} correct={result.score.culprit.correct} />
           <Score label="Motive" points={result.score.motive.points} correct={result.score.motive.correct} />
           <Score label="Method" points={result.score.method.points} correct={result.score.method.correct} />
+          {result.score.location && <Score label="Room" points={result.score.location.points} correct={result.score.location.correct} />}
           <Score label="Exhibits" points={result.score.keyEvidence.points} correct={result.score.keyEvidence.missed.length === 0} />
           <Score label="Sequence" points={result.score.timeline.points} correct={result.score.timeline.missed.length === 0} />
         </dl>
@@ -205,11 +208,25 @@ export default function AccusationPage() {
             <textarea value={method} onChange={(e) => setMethod(e.target.value)} rows={3} className={field} />
           )}
         </label>
+        <label className="block">
+          <span className="flex items-baseline gap-3">
+            <span className="display text-2xl italic text-[var(--copper)]">iv.</span>
+            <span className="text-[1.6rem] display">Room</span>
+          </span>
+          <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className={`${field} min-h-11`}>
+            <option value="">Select the room…</option>
+            {truth.locations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <fieldset className="mt-8">
         <legend className="flex items-baseline gap-3">
-          <span className="display text-2xl italic text-[var(--copper)]">iv.</span>
+          <span className="display text-2xl italic text-[var(--copper)]">v.</span>
           <span className="text-[1.6rem] display">Exhibits relied upon</span>
         </legend>
         {discoveredEvidence.length === 0 && <p className="mt-2 text-sm text-[var(--muted)]">No exhibits catalogued yet.</p>}
@@ -225,7 +242,7 @@ export default function AccusationPage() {
 
       <fieldset className="mt-8">
         <legend className="flex items-baseline gap-3">
-          <span className="display text-2xl italic text-[var(--copper)]">v.</span>
+          <span className="display text-2xl italic text-[var(--copper)]">vi.</span>
           <span className="text-[1.6rem] display">Sequence of events</span>
         </legend>
         {known.length === 0 && <p className="mt-2 text-sm text-[var(--muted)]">No events established yet; recover exhibits first.</p>}

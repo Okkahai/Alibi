@@ -614,6 +614,7 @@ const theVossManorCaseData: CaseTruth = {
       "Marcus embezzled $340,000 from the client trust account; Richard discovered the discrepancy and confronted him, intending to tell the board the next morning.",
     method:
       "Marcus crushed Richard's own heart medication into a glass of brandy fetched from the wine cellar and delivered it to Richard in the study.",
+    locationId: "loc_study",
     keyEvidenceIds: [
       "ev_ledger",
       "ev_voicemail",

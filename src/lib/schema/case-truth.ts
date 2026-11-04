@@ -123,6 +123,8 @@ export const SolutionSchema = z.object({
   culpritId: z.string(),
   motive: z.string(),
   method: z.string(),
+  /** Room where the crime happened; graded when present. */
+  locationId: z.string().optional(),
   keyEvidenceIds: z.array(z.string()).min(1),
   /** Ordered timeline event ids that constitute the minimal correct reconstruction. */
   criticalTimelineEventIds: z.array(z.string()).min(1),
