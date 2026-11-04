@@ -1,58 +1,36 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Cormorant_Garamond, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "./app-shell";
-import { ChangeCaseButton } from "./change-case-button";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Variable fonts load without a weight list; passing weight arrays for these two broke the Turbopack build (next/font "queries have exactly one entry").
+const display = Cormorant_Garamond({
+  variable: "--font-display",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
+
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "ColdCase AI",
-  description: "AI-powered detective investigation game with an immutable case truth.",
+  title: "ALIBI — a daily murder mystery",
+  description: "A daily deduction game: one case, one provable answer, no guessing.",
 };
-
-const NAV = [
-  { href: "/", label: "Case Desk" },
-  { href: "/crime-scene", label: "Crime Scene" },
-  { href: "/suspects", label: "Suspects" },
-  { href: "/interrogation", label: "Interrogation" },
-  { href: "/evidence", label: "Evidence" },
-  { href: "/timeline", label: "Timeline" },
-  { href: "/evidence-board", label: "Evidence Board" },
-  { href: "/accusation", label: "Accusation" },
-];
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
-        <header className="border-b border-[var(--border)] bg-[var(--surface)]">
-          <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-            <Link href="/" className="text-sm font-semibold tracking-wide accent-text">
-              COLDCASE AI
-            </Link>
-            <nav className="flex gap-1 overflow-x-auto text-sm items-center">
-              {NAV.map((item) => (
-                <Link key={item.href} href={item.href} className="px-2 py-1 rounded hover:bg-[var(--surface-raised)] whitespace-nowrap">
-                  {item.label}
-                </Link>
-              ))}
-              <ChangeCaseButton />
-            </nav>
-          </div>
-        </header>
-        <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6">
-          <AppShell>{children}</AppShell>
-        </main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

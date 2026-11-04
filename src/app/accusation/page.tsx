@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useGame } from "@/lib/state/game-context";
+import { knownEvents } from "@/lib/state/known-events";
+import { Portrait } from "@/components/art/portrait";
 
 interface ScoreResponse {
   score: {
@@ -37,6 +39,7 @@ export default function AccusationPage() {
   const [timelineEventIds, setTimelineEventIds] = useState<string[]>([]);
   const [result, setResult] = useState<ScoreResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   function toggle(list: string[], id: string, setter: (v: string[]) => void) {
     setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -61,135 +64,200 @@ export default function AccusationPage() {
   }
 
   if (result) {
+    const timeline = [...result.reveal.fullTimeline].sort((a, b) => a.time.localeCompare(b.time));
     return (
-      <div className="flex flex-col gap-4">
-        <div className="panel p-6">
-          <h1 className="text-2xl font-semibold">
-            Case Closed — <span className="accent-text">{result.score.percentage}%</span>
-          </h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            The culprit was <span className="text-[var(--foreground)]">{result.reveal.culpritName}</span>.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 text-sm">
-            <Score label="Culprit" points={result.score.culprit.points} correct={result.score.culprit.correct} />
-            <Score label="Motive" points={result.score.motive.points} correct={result.score.motive.correct} />
-            <Score label="Method" points={result.score.method.points} correct={result.score.method.correct} />
-            <Score label="Key evidence" points={result.score.keyEvidence.points} correct={result.score.keyEvidence.missed.length === 0} />
-            <Score label="Timeline" points={result.score.timeline.points} correct={result.score.timeline.missed.length === 0} />
+      <article>
+        <header className="on-ink px-5 md:px-8 py-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end relative overflow-hidden">
+          <div>
+            <p className="label text-[var(--brass-light)]">Section VII · Finding returned</p>
+            <h1 className="mt-2 text-[3rem] md:text-[4rem] italic font-medium text-[var(--on-ink)] leading-none">Case closed</h1>
+            <p className="mt-4 text-[var(--on-ink-muted)] max-w-[34rem]">
+              The person responsible was <span className="text-[var(--on-ink)] display text-2xl italic">{result.reveal.culpritName}</span>.
+            </p>
           </div>
-        </div>
-
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">What actually happened</h2>
-          <p className="text-sm">
-            <span className="text-[var(--muted)]">Motive:</span> {result.reveal.motive}
+          <p className="display text-[6rem] md:text-[8rem] leading-[0.8] text-[var(--brass)]" aria-label={`Score ${result.score.percentage} percent`}>
+            {result.score.percentage}
+            <span className="text-[2.5rem]">%</span>
           </p>
-          <p className="text-sm mt-1">
-            <span className="text-[var(--muted)]">Method:</span> {result.reveal.method}
-          </p>
-        </div>
+        </header>
 
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">Full timeline</h2>
-          <ol className="flex flex-col gap-1 text-sm">
-            {result.reveal.fullTimeline
-              .sort((a, b) => a.time.localeCompare(b.time))
-              .map((e) => (
-                <li key={e.id}>
-                  <span className="font-mono accent-text">{e.time}</span> — {e.description}
+        <dl className="grid grid-cols-2 sm:grid-cols-5 border-b-2 border-[var(--rule-strong)]">
+          <Score label="Culprit" points={result.score.culprit.points} correct={result.score.culprit.correct} />
+          <Score label="Motive" points={result.score.motive.points} correct={result.score.motive.correct} />
+          <Score label="Method" points={result.score.method.points} correct={result.score.method.correct} />
+          <Score label="Exhibits" points={result.score.keyEvidence.points} correct={result.score.keyEvidence.missed.length === 0} />
+          <Score label="Sequence" points={result.score.timeline.points} correct={result.score.timeline.missed.length === 0} />
+        </dl>
+
+        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+          <section>
+            <h2 className="text-[2rem] border-b-2 border-[var(--rule-strong)] pb-2">Reconstruction of the night</h2>
+            <p className="mt-3 text-sm">
+              <span className="label text-[var(--muted)] mr-2">Motive</span>
+              {result.reveal.motive}
+            </p>
+            <p className="mt-1 text-sm">
+              <span className="label text-[var(--muted)] mr-2">Method</span>
+              {result.reveal.method}
+            </p>
+            <ol className="mt-4">
+              {timeline.map((e) => (
+                <li key={e.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3 py-2.5 border-b border-[var(--border)]">
+                  <time className="display text-2xl leading-none">{e.time}</time>
+                  <span>{e.description}</span>
                 </li>
               ))}
-          </ol>
-        </div>
+            </ol>
+          </section>
 
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">Lies told</h2>
-          <ul className="flex flex-col gap-1 text-sm">
-            {result.reveal.allLies.map((lie, i) => (
-              <li key={i}>
-                <span className="text-[var(--foreground)]">{lie.characterName}</span> claimed &ldquo;{lie.falseClaim}&rdquo; — concealing the truth.
-              </li>
-            ))}
-          </ul>
+          <section>
+            <h2 className="text-[2rem] border-b-2 border-[var(--rule-strong)] pb-2">False statements</h2>
+            <ul>
+              {result.reveal.allLies.map((lie, i) => (
+                <li key={i} className="py-3 border-b border-[var(--border)]">
+                  <span className="label text-[var(--accent)]">✕ {lie.characterName}</span>
+                  <p className="display text-lg italic mt-1">&ldquo;{lie.falseClaim}&rdquo;</p>
+                </li>
+              ))}
+            </ul>
+            {result.reveal.redHerrings.length > 0 && (
+              <>
+                <h3 className="mt-8 label text-[var(--muted)]">Exhibits that misled</h3>
+                <ul className="mt-2 text-sm text-[var(--muted)]">
+                  {result.reveal.redHerrings.map((e) => (
+                    <li key={e.id} className="py-2 border-b border-[var(--border)]">
+                      {e.description}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
         </div>
-
-        <div className="panel p-6">
-          <h2 className="font-semibold mb-2">Red herrings</h2>
-          <ul className="flex flex-col gap-1 text-sm text-[var(--muted)]">
-            {result.reveal.redHerrings.map((e) => (
-              <li key={e.id}>{e.description}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
+      </article>
     );
   }
 
+  const field = "w-full mt-2 px-3 py-2 bg-[var(--surface)] border border-[var(--rule-strong)] text-sm";
+  const known = knownEvents(truth, state);
+
   return (
-    <div className="flex flex-col gap-4 panel p-6">
-      <h1 className="text-xl font-semibold">Make Your Accusation</h1>
+    <article>
+      <header className="flex flex-col md:flex-row md:items-end gap-3 border-b-2 border-[var(--rule-strong)] pb-4">
+        <div>
+          <p className="label text-[var(--copper)]">Section VII · Conclusion</p>
+          <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium">Finding of the investigation</h1>
+        </div>
+        <p className="md:ml-auto md:max-w-[22rem] text-sm text-[var(--muted)]">A finding is submitted once and cannot be withdrawn. Name the person; the rest of the form strengthens the case.</p>
+      </header>
 
-      <div>
-        <label className="text-sm text-[var(--muted)]">Culprit</label>
-        <select value={culpritId} onChange={(e) => setCulpritId(e.target.value)} className="w-full mt-1 panel-raised px-3 py-2 rounded text-sm">
-          <option value="">Select a suspect...</option>
-          {suspects.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      <fieldset className="mt-8">
+        <legend className="flex items-baseline gap-3">
+          <span className="display text-2xl italic text-[var(--copper)]">i.</span>
+          <span className="text-[1.6rem] display">The person responsible</span>
+        </legend>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2" role="radiogroup" aria-label="The person responsible">
+          {suspects.map((c) => {
+            const chosen = culpritId === c.id;
+            return (
+              <button
+                key={c.id}
+                role="radio"
+                aria-checked={chosen}
+                onClick={() => {
+                  setCulpritId(c.id);
+                  setConfirming(false);
+                }}
+                className={`text-left border p-2 ${chosen ? "border-[var(--accent)] bg-[var(--surface)] outline outline-2 outline-[var(--accent)]" : "border-[var(--border)] hover:border-[var(--rule-strong)]"}`}
+              >
+                <Portrait seed={c.name} view="profile" framed={false} className="w-16 h-auto" />
+                <span className="block mt-1 font-semibold leading-tight">{c.name}</span>
+                <span className={`label ${chosen ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}>{chosen ? "◆ Named" : "Select"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <label className="block">
+          <span className="flex items-baseline gap-3">
+            <span className="display text-2xl italic text-[var(--copper)]">ii.</span>
+            <span className="text-[1.6rem] display">Motive</span>
+          </span>
+          <textarea value={motive} onChange={(e) => setMotive(e.target.value)} rows={3} className={field} />
+        </label>
+        <label className="block">
+          <span className="flex items-baseline gap-3">
+            <span className="display text-2xl italic text-[var(--copper)]">iii.</span>
+            <span className="text-[1.6rem] display">Method</span>
+          </span>
+          <textarea value={method} onChange={(e) => setMethod(e.target.value)} rows={3} className={field} />
+        </label>
       </div>
 
-      <div>
-        <label className="text-sm text-[var(--muted)]">Motive</label>
-        <textarea value={motive} onChange={(e) => setMotive(e.target.value)} rows={2} className="w-full mt-1 panel-raised px-3 py-2 rounded text-sm" />
-      </div>
-
-      <div>
-        <label className="text-sm text-[var(--muted)]">Method</label>
-        <textarea value={method} onChange={(e) => setMethod(e.target.value)} rows={2} className="w-full mt-1 panel-raised px-3 py-2 rounded text-sm" />
-      </div>
-
-      <div>
-        <label className="text-sm text-[var(--muted)]">Key evidence</label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+      <fieldset className="mt-8">
+        <legend className="flex items-baseline gap-3">
+          <span className="display text-2xl italic text-[var(--copper)]">iv.</span>
+          <span className="text-[1.6rem] display">Exhibits relied upon</span>
+        </legend>
+        {discoveredEvidence.length === 0 && <p className="mt-2 text-sm text-[var(--muted)]">No exhibits catalogued yet.</p>}
+        <div className="mt-2 grid sm:grid-cols-2 gap-x-6">
           {discoveredEvidence.map((ev) => (
-            <label key={ev.id} className="panel-raised px-3 py-2 rounded text-sm flex items-start gap-2">
-              <input type="checkbox" checked={keyEvidenceIds.includes(ev.id)} onChange={() => toggle(keyEvidenceIds, ev.id, setKeyEvidenceIds)} />
+            <label key={ev.id} className="flex items-start gap-3 py-2.5 border-b border-[var(--border)] text-sm cursor-pointer">
+              <input type="checkbox" className="mt-0.5 w-5 h-5 accent-[var(--accent)] shrink-0" checked={keyEvidenceIds.includes(ev.id)} onChange={() => toggle(keyEvidenceIds, ev.id, setKeyEvidenceIds)} />
               {ev.description}
             </label>
           ))}
         </div>
-      </div>
+      </fieldset>
 
-      <div>
-        <label className="text-sm text-[var(--muted)]">Reconstructed timeline (events you believe occurred)</label>
-        <div className="flex flex-col gap-2 mt-1">
-          {truth.timeline
-            .slice()
-            .sort((a, b) => a.time.localeCompare(b.time))
-            .map((ev) => (
-              <label key={ev.id} className="panel-raised px-3 py-2 rounded text-sm flex items-start gap-2">
-                <input type="checkbox" checked={timelineEventIds.includes(ev.id)} onChange={() => toggle(timelineEventIds, ev.id, setTimelineEventIds)} />
-                <span className="font-mono accent-text">{ev.time}</span> {ev.description}
-              </label>
-            ))}
+      <fieldset className="mt-8">
+        <legend className="flex items-baseline gap-3">
+          <span className="display text-2xl italic text-[var(--copper)]">v.</span>
+          <span className="text-[1.6rem] display">Sequence of events</span>
+        </legend>
+        {known.length === 0 && <p className="mt-2 text-sm text-[var(--muted)]">No events established yet; recover exhibits first.</p>}
+        <div className="mt-2">
+          {known.map((ev) => (
+            <label key={ev.id} className="flex items-start gap-3 py-2.5 border-b border-[var(--border)] text-sm cursor-pointer">
+              <input type="checkbox" className="mt-0.5 w-5 h-5 accent-[var(--accent)] shrink-0" checked={timelineEventIds.includes(ev.id)} onChange={() => toggle(timelineEventIds, ev.id, setTimelineEventIds)} />
+              <span className="mono text-[var(--copper)] w-12 shrink-0">{ev.time}</span> {ev.description}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="mt-10 on-ink px-5 py-5 flex flex-wrap items-center gap-4">
+        <p className="label text-[var(--on-ink-muted)]" aria-live="polite">
+          {!culpritId
+            ? "Name the person responsible to submit."
+            : confirming
+              ? `Final: you name ${suspects.find((c) => c.id === culpritId)?.name}. This cannot be withdrawn.`
+              : `Named: ${suspects.find((c) => c.id === culpritId)?.name}`}
+        </p>
+        <div className="ml-auto flex gap-2">
+          {confirming && (
+            <button className="btn" onClick={() => setConfirming(false)}>
+              Revise
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => (confirming ? submit() : setConfirming(true))} disabled={!culpritId || submitting}>
+            {submitting ? "Submitting…" : confirming ? "Sign and submit" : "Review the finding"}
+          </button>
         </div>
       </div>
-
-      <button className="btn btn-primary self-start" onClick={submit} disabled={!culpritId || submitting}>
-        {submitting ? "Submitting..." : "Submit Accusation"}
-      </button>
-    </div>
+    </article>
   );
 }
 
 function Score({ label, points, correct }: { label: string; points: number; correct: boolean }) {
   return (
-    <div className="panel-raised p-3">
-      <p className="text-xs text-[var(--muted)]">{label}</p>
-      <p className={correct ? "accent-text" : "text-[var(--danger)]"}>{points} pts</p>
+    <div className="py-3 px-4 border-r border-[var(--border)] last:border-r-0">
+      <dt className="label text-[var(--muted)]">{label}</dt>
+      <dd className={`mono mt-1 ${correct ? "text-[var(--confirmed)]" : "text-[var(--danger)]"}`}>
+        {correct ? "✓" : "✕"} {points} pts
+      </dd>
     </div>
   );
 }

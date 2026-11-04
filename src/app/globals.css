@@ -1,69 +1,245 @@
 @import "tailwindcss";
 
+/* Forensic Modernism × Victorian Gothic — see docs/DESIGN_SYSTEM.md. */
 :root {
-  --background: #0b0d10;
-  --surface: #14171c;
-  --surface-raised: #1b1f26;
-  --border: #2a2f38;
-  --foreground: #e6e8eb;
-  --muted: #8a9099;
-  --accent: #b8863f;
-  --accent-foreground: #0b0d10;
-  --danger: #b3452f;
+  /* Ivory record sheets */
+  --background: #f2ebdd;
+  --surface: #f8f3e8;
+  --surface-raised: #e9dfcb;
+  --border: #cbbca1;
+  --rule-strong: #1c2321;
+  --foreground: #1c2321;
+  --muted: #5a5952;
+  /* Ink sections (hero, line-up, header) */
+  --ink: #1c2321;
+  --ink-raised: #262f2c;
+  --ink-rule: #3d4743;
+  --on-ink: #ede4d1;
+  --on-ink-muted: #aaa392;
+  /* Accents */
+  --accent: #682c3b;
+  --accent-hover: #53222f;
+  --accent-foreground: #f8f3e8;
+  --brass: #9c805a;
+  --brass-light: #c4a77c;
+  --copper: #6f5636;
+  --confirmed: #2f5d50;
+  --excluded: #6e6b62;
+  --warning: #735510;
+  --danger: #9b2c1f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-serif: var(--font-display);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+/* Element defaults live in the base layer so Tailwind utilities can override them. */
+@layer base {
+  html {
+    background: var(--ink);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-plex-sans), "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  h1,
+  h2,
+  h3,
+  .display {
+    font-family: var(--font-display), Georgia, serif;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    line-height: 1.05;
+    font-variant-numeric: lining-nums;
+  }
+
+  h1 {
+    font-size: 2.4rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+  }
 }
 
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
+@layer components {
+  .mono,
+  .specimen-id,
+  .label {
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Small uppercase mono label used for record fields and plate captions. */
+  .label {
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .on-ink {
+    background: var(--ink);
+    color: var(--on-ink);
+  }
+
+  /* Document sheet: square, ruled, no shadow. `.panel` aliases kept for pages not yet redesigned. */
+  .sheet,
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .panel-raised {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 0;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--rule-strong);
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .section-head .index {
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--copper);
+    letter-spacing: 0.08em;
+  }
+
+  .specimen-id {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: var(--copper);
+    text-transform: uppercase;
+  }
+
+  .accent-text {
+    color: var(--accent);
+  }
+
+  /* Dotted leader between a contents entry and its folio. */
+  .leader {
+    flex: 1;
+    border-bottom: 1px dotted currentColor;
+    opacity: 0.45;
+    transform: translateY(-0.3em);
+    min-width: 1.5rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 0;
+    border: 1px solid var(--rule-strong);
+    background: transparent;
+    color: inherit;
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .btn:hover {
+    background: var(--surface-raised);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-foreground);
+    border-color: var(--accent);
+  }
+
+  .btn-primary:disabled,
+  .btn-primary:disabled:hover {
+    background: transparent;
+    color: var(--muted);
+    border-color: var(--border);
+    opacity: 1;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+  }
+
+  .on-ink .btn:not(.btn-primary) {
+    border-color: var(--brass);
+  }
+
+  .on-ink .btn:not(.btn-primary):hover {
+    background: var(--ink-raised);
+  }
+
+  /* Logical status: glyph + colour (+ strike for excluded). Never colour alone. */
+  .status-confirmed {
+    color: var(--confirmed);
+  }
+
+  .status-confirmed::before {
+    content: "✓ ";
+  }
+
+  .status-excluded {
+    color: var(--excluded);
+    text-decoration: line-through;
+  }
+
+  .status-excluded::before {
+    content: "✕ ";
+  }
+
+  .status-possible::before {
+    content: "· ";
+    color: var(--muted);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .on-ink :focus-visible {
+    outline-color: var(--brass-light);
+  }
 }
 
-.panel-raised {
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-}
-
-.accent-text {
-  color: var(--accent);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  border: 1px solid var(--border);
-  background: var(--surface-raised);
-  color: var(--foreground);
-  font-size: 0.875rem;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-
-.btn:hover {
-  border-color: var(--accent);
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: var(--accent-foreground);
-  border-color: var(--accent);
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

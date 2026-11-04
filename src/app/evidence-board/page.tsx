@@ -2,13 +2,17 @@
 
 import { useRef, useState } from "react";
 import { useGame } from "@/lib/state/game-context";
+import { knownEvents } from "@/lib/state/known-events";
 import type { BoardNode } from "@/lib/schema/game-state";
 import type { CaseTruth } from "@/lib/schema/case-truth";
 
 function labelFor(truth: CaseTruth, node: BoardNode): string {
   if (node.kind === "note") return node.text ?? "Note";
   if (node.kind === "suspect") return truth.characters.find((c) => c.id === node.refId)?.name ?? node.refId ?? "?";
-  if (node.kind === "evidence") return truth.evidence.find((e) => e.id === node.refId)?.type.replace("_", " ") ?? "?";
+  if (node.kind === "evidence") {
+    const i = truth.evidence.findIndex((e) => e.id === node.refId);
+    return i < 0 ? "?" : `EX-${String(i + 1).padStart(2, "0")} · ${truth.evidence[i].description}`;
+  }
   if (node.kind === "location") return truth.locations.find((l) => l.id === node.refId)?.name ?? "?";
   if (node.kind === "event") return truth.timeline.find((e) => e.id === node.refId)?.time ?? "?";
   return "?";
@@ -51,83 +55,99 @@ export default function EvidenceBoardPage() {
 
   const refOptions: Record<string, { id: string; label: string }[]> = {
     suspect: suspects.map((c) => ({ id: c.id, label: c.name })),
-    evidence: discoveredEvidence.map((e) => ({ id: e.id, label: `${e.type}: ${e.description.slice(0, 30)}` })),
+    evidence: discoveredEvidence.map((e) => ({ id: e.id, label: `EX-${String(truth.evidence.indexOf(e) + 1).padStart(2, "0")} · ${e.description.slice(0, 48)}…` })),
     location: truth.locations.map((l) => ({ id: l.id, label: l.name })),
-    event: truth.timeline.map((e) => ({ id: e.id, label: `${e.time} ${e.description.slice(0, 30)}` })),
+    event: knownEvents(truth, state).map((e) => ({ id: e.id, label: `${e.time} ${e.description.slice(0, 30)}` })),
     note: [],
   };
 
+  const control = "min-h-11 px-3 bg-[var(--surface)] border border-[var(--rule-strong)] text-sm";
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="panel p-3 flex flex-wrap items-center gap-2">
-        <select
-          value={addKind}
-          onChange={(e) => {
-            setAddKind(e.target.value as BoardNode["kind"]);
-            setAddRefId("");
-          }}
-          className="panel-raised px-2 py-1 rounded text-sm"
-        >
-          <option value="suspect">Suspect</option>
-          <option value="evidence">Evidence</option>
-          <option value="location">Location</option>
-          <option value="event">Event</option>
-          <option value="note">Note</option>
-        </select>
-        {addKind !== "note" && (
-          <select value={addRefId} onChange={(e) => setAddRefId(e.target.value)} className="panel-raised px-2 py-1 rounded text-sm min-w-40">
-            <option value="">Select...</option>
-            {refOptions[addKind].map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
+    <article className="flex flex-col gap-5">
+      <header className="flex flex-col md:flex-row md:items-end gap-3 border-b-2 border-[var(--rule-strong)] pb-4">
+        <div>
+          <p className="label text-[var(--copper)]">Section VI · The board</p>
+          <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium">Working theory</h1>
+        </div>
+        <p className="md:ml-auto md:max-w-[24rem] text-sm text-[var(--muted)]">
+          Pin persons, exhibits, rooms and established events; select two cards to tie them with thread.
+        </p>
+      </header>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="grid gap-1">
+          <span className="label text-[var(--muted)]">Kind</span>
+          <select
+            value={addKind}
+            onChange={(e) => {
+              setAddKind(e.target.value as BoardNode["kind"]);
+              setAddRefId("");
+            }}
+            className={control}
+          >
+            <option value="suspect">Person</option>
+            <option value="evidence">Exhibit</option>
+            <option value="location">Room</option>
+            <option value="event">Event</option>
+            <option value="note">Note</option>
           </select>
+        </label>
+        {addKind !== "note" && (
+          <label className="grid gap-1">
+            <span className="label text-[var(--muted)]">Item</span>
+            <select value={addRefId} onChange={(e) => setAddRefId(e.target.value)} className={`${control} min-w-48`}>
+              <option value="">Select…</option>
+              {refOptions[addKind].map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
         <button className="btn btn-primary" onClick={handleAdd} disabled={addKind !== "note" && !addRefId}>
           Pin to board
         </button>
-        <span className="text-xs text-[var(--muted)] ml-auto">
-          {connectFrom ? "Click another card to connect it." : "Click two cards to draw a connection."}
+        <span className="label text-[var(--muted)] ml-auto" aria-live="polite">
+          {connectFrom ? "Select a second card to tie the thread." : "Select two cards to tie a thread."}
         </span>
       </div>
 
-      <div ref={boardRef} className="panel relative h-[60vh] overflow-hidden" style={{ backgroundImage: "radial-gradient(var(--border) 1px, transparent 1px)", backgroundSize: "16px 16px" }}>
-        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+      <div
+        ref={boardRef}
+        className="on-ink relative h-[60vh] overflow-hidden"
+        style={{ backgroundImage: "linear-gradient(var(--ink-rule) 1px, transparent 1px), linear-gradient(90deg, var(--ink-rule) 1px, transparent 1px)", backgroundSize: "48px 48px" }}
+      >
+        {state.boardNodes.length === 0 && <p className="absolute inset-0 grid place-items-center label text-[var(--on-ink-muted)]">Nothing pinned yet</p>}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
           {state.boardConnections.map((conn) => {
             const from = state.boardNodes.find((n) => n.id === conn.fromNodeId);
             const to = state.boardNodes.find((n) => n.id === conn.toNodeId);
             if (!from || !to) return null;
-            return (
-              <line
-                key={conn.id}
-                x1={from.x + 60}
-                y1={from.y + 20}
-                x2={to.x + 60}
-                y2={to.y + 20}
-                stroke="var(--accent)"
-                strokeWidth={1.5}
-              />
-            );
+            return <line key={conn.id} x1={from.x + 64} y1={from.y + 22} x2={to.x + 64} y2={to.y + 22} stroke="var(--brass-light)" strokeWidth={1.5} />;
           })}
         </svg>
         {state.boardNodes.map((node) => (
           <div
             key={node.id}
+            role="button"
+            tabIndex={0}
+            aria-pressed={connectFrom === node.id}
             onClick={() => handleNodeClick(node.id)}
-            className={`absolute w-32 panel-raised px-2 py-1.5 text-xs rounded cursor-pointer ${
-              connectFrom === node.id ? "border-[var(--accent)]" : ""
-            }`}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && handleNodeClick(node.id)}
+            className={`absolute w-32 bg-[var(--surface)] text-[var(--ink)] px-2 py-1.5 text-xs cursor-pointer border-t-4 ${connectFrom === node.id ? "border-[var(--accent)] outline outline-2 outline-[var(--brass-light)]" : "border-[var(--brass)]"}`}
             style={{ left: node.x, top: node.y }}
           >
             <div className="flex items-center justify-between">
-              <span className="uppercase text-[9px] text-[var(--muted)]">{node.kind}</span>
+              <span className="label text-[0.6rem] text-[var(--copper)]">{node.kind === "suspect" ? "person" : node.kind === "location" ? "room" : node.kind === "evidence" ? "exhibit" : node.kind}</span>
               <button
+                aria-label="Unpin"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeBoardNode(node.id);
                 }}
-                className="text-[var(--muted)] hover:text-[var(--danger)]"
+                className="text-[var(--muted)] hover:text-[var(--danger)] -my-2 -mr-2 min-w-11 min-h-11"
               >
                 ×
               </button>
@@ -137,16 +157,17 @@ export default function EvidenceBoardPage() {
         ))}
       </div>
 
-      <div className="panel p-4">
-        <h3 className="text-sm uppercase tracking-widest text-[var(--muted)] mb-2">Notes &amp; Theory</h3>
+      <label className="grid gap-2">
+        <span className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Notes and theory</span>
         <textarea
           value={state.playerNotes}
           onChange={(e) => setNotes(e.target.value)}
-          rows={4}
-          className="w-full panel-raised p-2 text-sm rounded outline-none"
-          placeholder="Write your working theory here..."
+          rows={5}
+          className="w-full p-3 text-sm bg-[var(--surface)] border border-[var(--rule-strong)] leading-7"
+          style={{ backgroundImage: "linear-gradient(transparent 27px, var(--border) 28px)", backgroundSize: "100% 28px", backgroundAttachment: "local" }}
+          placeholder="Write your working theory here…"
         />
-      </div>
-    </div>
+      </label>
+    </article>
   );
 }

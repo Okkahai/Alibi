@@ -42,6 +42,67 @@ const AXIS_NOUN: Record<Axis, string> = {
   falseAlibi: "the suspect whose alibi breaks",
 };
 
+// Two or three phrasings per clue shape, so published cases don't all read as
+// the same sentence skeleton with names swapped in (§9 "prevent repetitive
+// daily content"). Picked per-clue by the narrative RNG; the logical meaning
+// (and therefore solvability) never depends on which one is chosen.
+const NOT_TEMPLATES: Record<Axis, Array<(name: string) => string>> = {
+  culprit: [
+    (n) => `${n} has a corroborated alibi for the critical window — not the culprit.`,
+    (n) => `A witness statement clears ${n}.`,
+    (n) => `${n} is accounted for elsewhere at the time of the murder.`,
+  ],
+  method: [
+    (n) => `The coroner's report rules out ${n} as the method.`,
+    (n) => `Forensics found no trace of ${n} at the scene.`,
+    (n) => `${n} does not match the wounds found on the body.`,
+  ],
+  location: [
+    (n) => `The crime did not take place at ${n}.`,
+    (n) => `No signs of a struggle were found at ${n}.`,
+    (n) => `${n} was checked and cleared by investigators.`,
+  ],
+  falseAlibi: [
+    (n) => `${n}'s account of the evening holds up under scrutiny.`,
+    (n) => `${n}'s alibi was independently corroborated.`,
+  ],
+};
+
+const IS_TEMPLATES: Record<Axis, Array<(name: string) => string>> = {
+  culprit: [(n) => `${capitalize(AXIS_NOUN.culprit)} is ${n}.`],
+  method: [(n) => `${capitalize(AXIS_NOUN.method)} is ${n}.`],
+  location: [(n) => `${capitalize(AXIS_NOUN.location)} is ${n}.`],
+  falseAlibi: [(n) => `${capitalize(AXIS_NOUN.falseAlibi)} is ${n}.`],
+};
+
+const LINKED_TEMPLATES: Record<string, Array<(a: string, b: string) => string>> = {
+  "culprit:method": [
+    (_a, b) => `Whoever did it used ${b}.`,
+    (_a, b) => `The killer's weapon was ${b}.`,
+    (_a, b) => `Trace evidence ties the killer to ${b}.`,
+  ],
+  "culprit:location": [
+    (_a, b) => `Whoever did it was at ${b} that night.`,
+    (_a, b) => `The killer was present at ${b}.`,
+    (_a, b) => `Security records place the killer at ${b}.`,
+  ],
+  "culprit:falseAlibi": [
+    () => `The culprit is the one whose story doesn't hold up.`,
+    () => `Whoever is lying about their alibi is the killer.`,
+  ],
+  "method:location": [
+    (a, b) => `${capitalize(a)} was used at ${b}.`,
+    (a, b) => `The scene at ${b} is consistent with ${a}.`,
+    (a, b) => `Forensic residue of ${a} was found at ${b}.`,
+  ],
+};
+
+const CONDITIONAL_TEMPLATES: Array<(ifNoun: string, ifName: string, thenNoun: string, thenName: string, negated: boolean) => string> = [
+  (ifNoun, ifName, thenNoun, thenName, negated) => `If ${ifNoun} is ${ifName}, then ${thenNoun} ${negated ? "is not" : "is"} ${thenName}.`,
+  (ifNoun, ifName, thenNoun, thenName, negated) =>
+    `Should ${ifNoun} turn out to be ${ifName}, ${thenNoun} would ${negated ? "not be" : "have to be"} ${thenName}.`,
+];
+
 export interface GenerateCaseOptions {
   seed: string;
   difficulty: Difficulty;
@@ -95,8 +156,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       case "not":
       case "is": {
         const name = nameOf(clue.axis, clue.value);
-        const text =
-          clue.kind === "not" ? `${capitalize(AXIS_NOUN[clue.axis])} is not ${name}.` : `${capitalize(AXIS_NOUN[clue.axis])} is ${name}.`;
+        const text = names.pick(clue.kind === "not" ? NOT_TEMPLATES[clue.axis] : IS_TEMPLATES[clue.axis])(name);
         return {
           text,
           events: [eventFor(clue.axis, clue.value)],
@@ -109,10 +169,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       case "not-linked": {
         const nameA = nameOf(clue.axisA, clue.valueA);
         const nameB = nameOf(clue.axisB, clue.valueB);
-        const text =
-          clue.kind === "linked"
-            ? `Whoever has ${AXIS_NOUN[clue.axisA]} as ${nameA} also has ${AXIS_NOUN[clue.axisB]} as ${nameB}.`
-            : `It is not true that ${AXIS_NOUN[clue.axisA]} is ${nameA} together with ${AXIS_NOUN[clue.axisB]} being ${nameB}.`;
+        const positive = names.pick(LINKED_TEMPLATES[`${clue.axisA}:${clue.axisB}`])(nameA, nameB);
+        const text = clue.kind === "linked" ? positive : `It is not true that ${lowercaseFirst(positive)}`;
         return {
           text,
           events: dedupe([eventFor(clue.axisA, clue.valueA), eventFor(clue.axisB, clue.valueB)]),
@@ -124,7 +182,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       case "conditional": {
         const ifName = nameOf(clue.ifAxis, clue.ifValue);
         const thenName = nameOf(clue.thenAxis, clue.thenValue);
-        const text = `If ${AXIS_NOUN[clue.ifAxis]} is ${ifName}, then ${AXIS_NOUN[clue.thenAxis]} ${clue.thenNegated ? "is not" : "is"} ${thenName}.`;
+        const template = names.pick(CONDITIONAL_TEMPLATES);
+        const text = template(AXIS_NOUN[clue.ifAxis], ifName, AXIS_NOUN[clue.thenAxis], thenName, clue.thenNegated);
         return {
           text,
           events: dedupe([eventFor(clue.ifAxis, clue.ifValue), eventFor(clue.thenAxis, clue.thenValue)]),
@@ -228,7 +287,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     {
       id: "evt_crime",
       time: "22:15",
-      description: `${suspectName.get(culpritId)} used ${methodName.get(puzzle.solution.method)} at ${crimeLocationName} to kill ${victimName}.`,
+      // Never name the culprit or method here: the event is shown in the Chronology once an exhibit places it.
+      description: `${victimName} was killed at ${crimeLocationName}.`,
       locationId: puzzle.solution.location,
       involvedCharacterIds: [culpritId],
       isTrue: true,
@@ -319,4 +379,8 @@ function dedupe(ids: string[]): string[] {
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function lowercaseFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1);
 }

@@ -36,4 +36,18 @@ describe("generateCase (solver-backed narrative generator)", () => {
       expect(truth.evidence.some((e) => e.id === id)).toBe(true);
     }
   });
+
+  it("varies clue phrasing across seeds (§9) instead of always rendering the same sentence skeleton", () => {
+    const keyEvidenceTexts = new Set<string>();
+    for (let i = 0; i < 20; i++) {
+      const truth = generateCase({ seed: `phrasing-${i}`, difficulty: "easy" });
+      for (const id of truth.solution.keyEvidenceIds) {
+        keyEvidenceTexts.add(truth.evidence.find((e) => e.id === id)!.description);
+      }
+    }
+    // The culprit->method/location anchor clues are always rendered (see
+    // puzzle-generator.ts), so with only one phrasing template this set
+    // would collapse to ~2 distinct strings; several templates means more.
+    expect(keyEvidenceTexts.size).toBeGreaterThan(3);
+  });
 });
