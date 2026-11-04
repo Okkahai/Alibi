@@ -1,5 +1,7 @@
 # 11 — Daily Mode (Wordle-style)
 
+> Superseded by [DAILY_SYSTEM.md](DAILY_SYSTEM.md); kept for history.
+
 Turns ColdCase AI into a public, one-case-per-day web game: every player
 gets the same case on the same UTC date, with a limited number of moves and
 a shareable, spoiler-free result — the same shape as Wordle/Krillion. This

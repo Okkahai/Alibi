@@ -1,0 +1,28 @@
+name: Freeze published dailies
+# Shortly after each UTC rollover, record the new day's fingerprint so no later
+# generator change can alter a case players have already seen (docs/DAILY_SYSTEM.md).
+on:
+  schedule:
+    - cron: "10 0 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/freeze-dailies.ts
+      - run: npx vitest run __tests__/daily-frozen.test.ts
+      - name: Commit if changed
+        run: |
+          git diff --quiet src/data/daily-fingerprints.json && exit 0
+          git config user.name "alibi-bot"
+          git config user.email "alibi-bot@users.noreply.github.com"
+          git commit -am "chore: freeze daily $(date -u +%F)"
+          git push
