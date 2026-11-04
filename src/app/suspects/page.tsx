@@ -28,8 +28,13 @@ export default function SuspectsPage() {
 
       {/* Line-up: profile silhouettes against a height chart */}
       <figure className="on-ink mt-6 relative" aria-label="Line-up of persons of interest">
+        <div className="absolute left-1 md:left-2 top-8 flex flex-col mono text-[0.6rem] leading-none text-[var(--on-ink-muted)]" aria-hidden="true">
+          {["6′6″", "", "6′0″", "", "5′6″", "", "5′0″"].map((h, i) => (
+            <span key={i} className="h-[28px] -translate-y-1/2">{h}</span>
+          ))}
+        </div>
         <div
-          className="relative px-4 md:px-8 pt-8 pb-3 grid gap-2 md:gap-4"
+          className="relative pl-8 pr-3 md:pl-12 md:pr-8 pt-8 pb-3 grid gap-2 md:gap-4"
           style={{
             gridTemplateColumns: `repeat(${people.length}, minmax(0, 1fr))`,
             backgroundImage: "repeating-linear-gradient(to bottom, var(--ink-rule) 0 1px, transparent 1px 28px)",
@@ -40,13 +45,13 @@ export default function SuspectsPage() {
             return (
               <a key={c.id} href={`#${recordNo(i)}`} className="group flex flex-col items-center justify-end" aria-label={`${c.name}, record ${recordNo(i)}`}>
                 <div className="w-full max-w-[9rem]" style={{ width: `${scale * 100}%` }}>
-                  <Portrait seed={c.name} view="profile" ink="var(--on-ink)" paper="var(--ink)" framed={false} className="w-full h-auto group-hover:[&_g]:fill-[var(--brass-light)]" />
+                  <Portrait seed={c.name} view="profile" ink="var(--on-ink)" highlight="var(--brass)" framed={false} className="w-full h-auto group-hover:[&_g]:fill-[var(--brass-light)]" />
                 </div>
               </a>
             );
           })}
         </div>
-        <div className="grid gap-2 md:gap-4 px-4 md:px-8 pb-4 border-t border-[var(--brass)]" style={{ gridTemplateColumns: `repeat(${people.length}, minmax(0, 1fr))` }}>
+        <div className="grid gap-2 md:gap-4 pl-8 pr-3 md:pl-12 md:pr-8 pb-4 border-t border-[var(--brass)]" style={{ gridTemplateColumns: `repeat(${people.length}, minmax(0, 1fr))` }}>
           {people.map((c, i) => (
             <div key={c.id} className="pt-2 text-center">
               <span className="label text-[var(--brass-light)]">{recordNo(i)}</span>
@@ -56,38 +61,37 @@ export default function SuspectsPage() {
         </div>
       </figure>
 
-      <ol className="mt-10 grid gap-x-12 xl:grid-cols-2">
+      <ol className="mt-10">
         {people.map((c, i) => (
-          <li key={c.id} id={recordNo(i)} className="scroll-mt-6 border-t-2 border-[var(--rule-strong)] pt-3 pb-10">
-            <div className="flex items-baseline justify-between">
-              <span className="label text-[var(--muted)]">Identification record</span>
-              <span className="mono text-[var(--copper)] text-sm">{recordNo(i)}</span>
+          <li key={c.id} id={recordNo(i)} className="scroll-mt-6 border-t-2 border-[var(--rule-strong)] pt-3 pb-8 grid gap-x-8 gap-y-4 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
+            <div className="grid grid-cols-2 gap-2 self-start max-w-[15rem]">
+              <figure>
+                <Portrait seed={c.name} view="front" className="w-full h-auto bg-[var(--surface)]" title={`Front view silhouette of ${c.name}`} />
+                <figcaption className="label text-[var(--muted)] mt-1">Front</figcaption>
+              </figure>
+              <figure>
+                <Portrait seed={c.name} view="profile" className="w-full h-auto bg-[var(--surface)]" title={`Profile silhouette of ${c.name}`} />
+                <figcaption className="label text-[var(--muted)] mt-1">Profile</figcaption>
+              </figure>
             </div>
-            <h2 className="mt-2 text-[2rem] leading-tight">{c.name}</h2>
-            <p className="label text-[var(--muted)] mt-1">{c.role === "witness" ? "Witness" : "Person of interest"}</p>
 
-            <div className="mt-4 grid grid-cols-[minmax(0,12rem)_minmax(0,1fr)] gap-6 max-sm:grid-cols-1">
-              <div className="grid grid-cols-2 gap-2 self-start max-w-[12rem]">
-                <figure>
-                  <Portrait seed={c.name} view="front" className="w-full h-auto bg-[var(--surface)]" title={`Front view silhouette of ${c.name}`} />
-                  <figcaption className="label text-[var(--muted)] mt-1">Front</figcaption>
-                </figure>
-                <figure>
-                  <Portrait seed={c.name} view="profile" className="w-full h-auto bg-[var(--surface)]" title={`Profile silhouette of ${c.name}`} />
-                  <figcaption className="label text-[var(--muted)] mt-1">Profile</figcaption>
-                </figure>
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-4">
+                <span className="mono text-[var(--copper)]">{recordNo(i)}</span>
+                <span className="label text-[var(--muted)]">Identification record · {c.role === "witness" ? "Witness" : "Person of interest"}</span>
               </div>
+              <h2 className="mt-1 text-[2.1rem] leading-tight">{c.name}</h2>
 
-              <dl className="text-sm">
+              <dl className="mt-3 grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-x-8 text-sm border-t border-[var(--border)]">
                 <div className="py-2 border-b border-[var(--border)]">
-                  <dt className="label text-[var(--muted)]">Relation</dt>
+                  <dt className="label text-[var(--muted)]">Relation to the deceased</dt>
                   <dd className="mt-0.5">{c.relationshipToVictim}</dd>
                 </div>
-                <div className="py-2 border-b border-[var(--border)]">
+                <div className="py-2 border-b border-[var(--border)] sm:row-span-2">
                   <dt className="label text-[var(--muted)]">Stated whereabouts</dt>
-                  <dd className="mt-0.5 flex flex-wrap items-baseline gap-x-3">
-                    <span className="display text-xl italic text-[var(--accent)]">“{locationName(c.claimedLocation)}”</span>
-                    <span className="label text-[var(--muted)]">As stated · unverified</span>
+                  <dd className="mt-0.5">
+                    <span className="display text-2xl italic text-[var(--accent)]">“{locationName(c.claimedLocation)}”</span>
+                    <span className="block label text-[var(--muted)] mt-1">As stated · unverified</span>
                   </dd>
                 </div>
                 <div className="py-2 border-b border-[var(--border)]">
@@ -95,11 +99,11 @@ export default function SuspectsPage() {
                   <dd className="mt-0.5 text-[var(--muted)]">{c.personality}</dd>
                 </div>
               </dl>
-            </div>
 
-            <Link href="/interrogation" className="btn mt-5">
-              Call for interrogation <span aria-hidden="true">→</span>
-            </Link>
+              <Link href="/interrogation" className="btn mt-4">
+                Call for interrogation <span aria-hidden="true">→</span>
+              </Link>
+            </div>
           </li>
         ))}
       </ol>

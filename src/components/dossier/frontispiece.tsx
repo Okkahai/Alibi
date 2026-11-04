@@ -168,14 +168,14 @@ function saveStatus(caseId: string): string | null {
 function ArchiveLedger({ current }: { current: CaseSelection | null }) {
   const today = getUtcDateString();
   const rows = useMemo(() => {
-    const out: { seed: string; number: string; title: string; status: string | null }[] = [];
+    const out: { seed: string; number: string; title: string; victim: string; status: string | null }[] = [];
     for (let i = 0; i < 7; i++) {
       const seed = getUtcDateString(new Date(Date.parse(`${today}T00:00:00Z`) - i * 86400000));
       const number = dailyCaseNumber(seed);
       if (!number) break;
       const selection = getDailySelection(new Date(`${seed}T00:00:00Z`));
       const truth = resolveCaseTruth(selection);
-      out.push({ seed, number, title: truth.title, status: saveStatus(truth.id) });
+      out.push({ seed, number, title: truth.title, victim: truth.victim.name, status: saveStatus(truth.id) });
     }
     return out;
   }, [today]);
@@ -197,20 +197,22 @@ function ArchiveLedger({ current }: { current: CaseSelection | null }) {
             <tr key={r.seed} className="border-t border-[var(--border)]">
               <td className="py-2.5 mono text-[var(--copper)] align-top">{r.number}</td>
               <td className="py-2.5">
-                <button className="text-left hover:text-[var(--accent)] underline-offset-4 hover:underline" onClick={() => openCase(getDailySelection(new Date(`${r.seed}T00:00:00Z`)))}>
+                <button className="text-left min-h-11 hover:text-[var(--accent)] underline-offset-4 hover:underline" onClick={() => openCase(getDailySelection(new Date(`${r.seed}T00:00:00Z`)))}>
                   <span className="display text-lg leading-tight block">{r.title}</span>
+                  <span className="block text-sm text-[var(--muted)]">The late {r.victim}</span>
                   <span className="label text-[var(--muted)]">{r.seed === today ? "Today" : formatCaseDate(r.seed)}</span>
                 </button>
               </td>
               <td className="py-2.5 text-right label align-top">
                 {r.status === "accused" ? (
-                  <span className="text-[var(--confirmed)]">✓ Closed</span>
+                  <span className="text-[var(--confirmed)] whitespace-nowrap">✓ Closed</span>
+                ) : isCurrent ? (
+                  <span className="text-[var(--copper)] whitespace-nowrap">◆ On desk</span>
                 ) : r.status ? (
-                  <span className="text-[var(--accent)]">◐ Open</span>
+                  <span className="text-[var(--accent)] whitespace-nowrap">◐ In progress</span>
                 ) : (
-                  <span className="text-[var(--muted)]">· Sealed</span>
+                  <span className="text-[var(--muted)] whitespace-nowrap">Unopened</span>
                 )}
-                {isCurrent && <span className="block text-[var(--copper)]">On desk</span>}
               </td>
             </tr>
           );

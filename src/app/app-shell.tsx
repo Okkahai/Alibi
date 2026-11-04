@@ -63,9 +63,9 @@ function ActiveCase({ selection, children }: { selection: CaseSelection; childre
     <>
       <SiteHeader caseNumber={meta.number} caseTitle={truth.title} progress={progress} />
       {pathname === "/" ? (
-        <main>{children}</main>
+        <main className="w-full">{children}</main>
       ) : (
-        <div className="mx-auto max-w-7xl px-4 md:px-8 py-6 lg:py-10 grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
+        <div className="w-full mx-auto max-w-7xl px-4 md:px-8 py-6 lg:py-10 grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
           <DossierRail caseNumber={meta.number} caseTitle={truth.title} />
           <main className="min-w-0">{children}</main>
         </div>

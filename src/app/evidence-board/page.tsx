@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useGame } from "@/lib/state/game-context";
+import { knownEvents } from "@/lib/state/known-events";
 import type { BoardNode } from "@/lib/schema/game-state";
 import type { CaseTruth } from "@/lib/schema/case-truth";
 
@@ -53,7 +54,7 @@ export default function EvidenceBoardPage() {
     suspect: suspects.map((c) => ({ id: c.id, label: c.name })),
     evidence: discoveredEvidence.map((e) => ({ id: e.id, label: `${e.type}: ${e.description.slice(0, 30)}` })),
     location: truth.locations.map((l) => ({ id: l.id, label: l.name })),
-    event: truth.timeline.map((e) => ({ id: e.id, label: `${e.time} ${e.description.slice(0, 30)}` })),
+    event: knownEvents(truth, state).map((e) => ({ id: e.id, label: `${e.time} ${e.description.slice(0, 30)}` })),
     note: [],
   };
 

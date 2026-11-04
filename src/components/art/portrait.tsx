@@ -17,6 +17,7 @@ interface Features {
   collar: number; // 0 plain, 1 high points, 2 ruff
   spectacles: boolean;
   nose: number; // tip offset 0..6
+  build: number; // shoulder width scale
 }
 
 export function featuresFor(seed: string): Features {
@@ -30,23 +31,45 @@ export function featuresFor(seed: string): Features {
     collar: (h >> 7) % 3,
     spectacles: !hatted && (h >> 9) % 4 === 0,
     nose: (h >> 11) % 7,
+    build: [0.9, 1, 1.1][(h >>> 16) % 3],
   };
 }
 
-function ProfileDetail({ paper }: { paper: string }) {
+/*
+ * "Bronzed" highlights: Victorian silhouettists painted fine gold lines over
+ * the black shape for hair, ear and coat. These give each figure detail
+ * without breaking the cut-paper silhouette.
+ */
+function ProfileDetail({ f, line }: { f: Features; line: string }) {
+  const bare = f.hair !== 2 && f.hair !== 3;
   return (
-    <g fill="none" stroke={paper} strokeWidth="1.2" strokeLinecap="round">
-      <path d="M 100 176 L 112 200 L 130 182" />
+    <g fill="none" stroke={line} strokeWidth="0.9" strokeLinecap="round" opacity="0.9">
+      {bare && (
+        <>
+          <path d="M 60 92 C 70 74 88 64 110 62" />
+          <path d="M 57 106 C 68 86 90 74 118 71" />
+          <path d="M 62 120 C 72 102 86 90 102 86" />
+        </>
+      )}
+      <path d="M 86 104 C 79 100 77 113 84 117" strokeWidth="1.1" />
+      <path d="M 122 99 L 128 100" />
+      <path d="M 100 176 L 112 200 L 130 182" strokeWidth="1.2" />
+      <path d="M 44 186 C 58 179 74 177 88 179" />
+      {f.collar === 0 && <path d="M 112 174 L 122 170 L 120 180 Z M 112 174 L 104 168 L 106 178 Z" />}
     </g>
   );
 }
 
-function FrontDetail({ paper }: { paper: string }) {
+function FrontDetail({ f, line }: { f: Features; line: string }) {
   return (
-    <g fill="none" stroke={paper} strokeWidth="1.2" strokeLinecap="round">
-      <path d="M 62 160 L 80 190 L 98 160" />
-      <circle cx="80" cy="196" r="1.4" fill={paper} />
-      <path d="M 40 178 C 46 184 50 192 52 200 M 120 178 C 114 184 110 192 108 200" strokeWidth="0.7" />
+    <g fill="none" stroke={line} strokeWidth="0.9" strokeLinecap="round" opacity="0.9">
+      {(f.hair === 0 || f.hair === 5) && <path d="M 82 60 C 78 68 75 74 72 80" />}
+      {f.hair === 4 && <path d="M 80 64 L 80 76 M 60 90 C 56 120 50 140 44 160 M 100 90 C 104 120 110 140 116 160" />}
+      <path d="M 52 96 C 49 99 50 104 53 106 M 108 96 C 111 99 110 104 107 106" />
+      <path d="M 64 160 L 80 188 L 96 160" strokeWidth="1.2" />
+      <circle cx="80" cy="195" r="1.4" fill={line} />
+      <path d="M 36 180 C 44 186 48 192 50 200 M 124 180 C 116 186 112 192 110 200" />
+      {f.collar === 0 && <path d="M 80 166 L 70 160 L 70 172 Z M 80 166 L 90 160 L 90 172 Z" />}
     </g>
   );
 }
@@ -86,7 +109,7 @@ function ProfileShape({ f }: { f: Features }) {
 function FrontShape({ f }: { f: Features }) {
   return (
     <g>
-      <path d="M 10 200 C 14 176 40 164 66 158 L 94 158 C 120 164 146 176 150 200 Z" />
+      <path d="M 10 200 C 14 176 40 164 66 158 L 94 158 C 120 164 146 176 150 200 Z" transform={`translate(${80 * (1 - f.build)} 0) scale(${f.build} 1)`} />
       <rect x="67" y="124" width="26" height="38" />
       <ellipse cx="80" cy="96" rx="30" ry="37" />
       <ellipse cx="50" cy="100" rx="4" ry="8" />
@@ -125,7 +148,7 @@ export function Portrait({
   ink = "var(--ink)",
   ground = "var(--brass)",
   framed = true,
-  paper = "var(--surface)",
+  highlight = "var(--brass-light)",
   className,
   title,
 }: {
@@ -134,7 +157,7 @@ export function Portrait({
   ink?: string;
   ground?: string;
   framed?: boolean;
-  paper?: string;
+  highlight?: string;
   className?: string;
   title?: string;
 }) {
@@ -156,7 +179,7 @@ export function Portrait({
         </>
       )}
       <g fill={ink}>{view === "profile" ? <ProfileShape f={f} /> : <FrontShape f={f} />}</g>
-      {view === "profile" ? <ProfileDetail paper={paper} /> : <FrontDetail paper={paper} />}
+      {view === "profile" ? <ProfileDetail f={f} line={highlight} /> : <FrontDetail f={f} line={highlight} />}
       {framed && <rect x="0.5" y="0.5" width="159" height="199" fill="none" stroke={ink} strokeWidth="1" />}
     </svg>
   );

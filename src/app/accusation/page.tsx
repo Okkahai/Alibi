@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useGame } from "@/lib/state/game-context";
+import { knownEvents } from "@/lib/state/known-events";
 
 interface ScoreResponse {
   score: {
@@ -166,10 +167,8 @@ export default function AccusationPage() {
       <div>
         <label className="text-sm text-[var(--muted)]">Reconstructed timeline (events you believe occurred)</label>
         <div className="flex flex-col gap-2 mt-1">
-          {truth.timeline
-            .slice()
-            .sort((a, b) => a.time.localeCompare(b.time))
-            .map((ev) => (
+          {knownEvents(truth, state).length === 0 && <p className="text-sm text-[var(--muted)]">No events established yet; recover exhibits first.</p>}
+          {knownEvents(truth, state).map((ev) => (
               <label key={ev.id} className="panel-raised px-3 py-2 rounded text-sm flex items-start gap-2">
                 <input type="checkbox" checked={timelineEventIds.includes(ev.id)} onChange={() => toggle(timelineEventIds, ev.id, setTimelineEventIds)} />
                 <span className="font-mono accent-text">{ev.time}</span> {ev.description}

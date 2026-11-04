@@ -29,6 +29,8 @@ export function WatchPlate({ time, className }: { time: string; className?: stri
         <Hatch id={`a-${uid}`} color={ink} gap={2.4} angle={45} weight={0.55} />
         <Hatch id={`b-${uid}`} color={ink} gap={3.2} angle={-30} weight={0.4} />
         <Hatch id={`c-${uid}`} color={ink} gap={2} angle={90} weight={0.5} />
+        <Hatch id={`d-${uid}`} color={ink} gap={2.4} angle={-45} weight={0.45} />
+        <Hatch id={`s-${uid}`} color={ink} gap={3} angle={20} weight={0.5} />
         <clipPath id={`k-${uid}`}>
           <circle cx={cx} cy={cy} r="120" />
         </clipPath>
@@ -48,14 +50,22 @@ export function WatchPlate({ time, className }: { time: string; className?: stri
       <circle cx={cx} cy={cy - 148} r="17" fill="none" stroke={ink} strokeWidth="5" />
       <rect x={cx - 12} y={cy - 134} width="24" height="16" fill={`url(#c-${uid})`} stroke={ink} strokeWidth="1.5" />
 
+      {/* cast shadows, engraved as hatching */}
+      <ellipse cx={cx + 16} cy={cy + 18} rx="122" ry="120" fill={`url(#s-${uid})`} opacity="0.75" />
+      <ellipse cx="326" cy="388" rx="58" ry="56" fill={`url(#s-${uid})`} opacity="0.6" />
+
       {/* case with engraved shading */}
       <circle cx={cx} cy={cy} r="120" fill={paper} stroke={ink} strokeWidth="2.5" />
       <g clipPath={`url(#k-${uid})`}>
         <rect x={cx - 120} y={cy - 120} width="240" height="240" fill={`url(#a-${uid})`} />
-        <circle cx={cx - 12} cy={cy - 12} r="118" fill={paper} />
+        <circle cx={cx - 7} cy={cy - 7} r="118" fill={paper} />
+        <rect x={cx - 120} y={cy - 120} width="240" height="240" fill={`url(#d-${uid})`} />
+        <circle cx={cx - 13} cy={cy - 13} r="118" fill={paper} />
       </g>
       <circle cx={cx} cy={cy} r="110" fill="none" stroke={ink} strokeWidth="1" />
       <circle cx={cx} cy={cy} r="101" fill={paper} stroke={ink} strokeWidth="1.5" />
+
+      <path d={`M ${cx + 100} ${cy} A 100 100 0 0 1 ${cx} ${cy + 100} A 92 92 0 0 0 ${cx + 100} ${cy}`} fill={`url(#d-${uid})`} opacity="0.5" />
 
       {/* chapter ring */}
       {Array.from({ length: 60 }, (_, i) => {
@@ -79,10 +89,10 @@ export function WatchPlate({ time, className }: { time: string; className?: stri
 
       {/* hands */}
       <g transform={`rotate(${hourDeg} ${cx} ${cy})`}>
-        <path d={`M ${cx - 3} ${cy + 10} L ${cx - 2.5} ${cy - 36} L ${cx - 8} ${cy - 46} L ${cx} ${cy - 58} L ${cx + 8} ${cy - 46} L ${cx + 2.5} ${cy - 36} L ${cx + 3} ${cy + 10} Z`} fill={ink} />
+        <path d={`M ${cx - 3} ${cy + 10} L ${cx - 2.5} ${cy - 36} L ${cx - 8} ${cy - 46} L ${cx} ${cy - 58} L ${cx + 8} ${cy - 46} L ${cx + 2.5} ${cy - 36} L ${cx + 3} ${cy + 10} Z`} fill={ink} stroke={paper} strokeWidth="1.6" paintOrder="stroke" />
       </g>
       <g transform={`rotate(${minuteDeg} ${cx} ${cy})`}>
-        <path d={`M ${cx - 1.6} ${cy + 14} L ${cx - 1.2} ${cy - 84} L ${cx} ${cy - 90} L ${cx + 1.2} ${cy - 84} L ${cx + 1.6} ${cy + 14} Z`} fill={ink} />
+        <path d={`M ${cx - 1.6} ${cy + 14} L ${cx - 1.2} ${cy - 84} L ${cx} ${cy - 90} L ${cx + 1.2} ${cy - 84} L ${cx + 1.6} ${cy + 14} Z`} fill={ink} stroke={paper} strokeWidth="2" paintOrder="stroke" />
       </g>
       <circle cx={cx} cy={cy} r="5" fill={ink} />
       <circle cx={cx} cy={cy} r="1.6" fill={paper} />
