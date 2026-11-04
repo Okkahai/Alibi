@@ -58,11 +58,19 @@ export const PERSONALITIES = [
   "Withdrawn, answers only what's asked.",
 ];
 
-export const CRIME_LOCATION_NAMES = ["The Study", "The Library", "The Conservatory", "The Office", "The Boathouse"];
-
 export const HUB_LOCATION_NAMES = ["Main Hallway", "Reception Hall", "The Foyer", "Central Corridor"];
 
-export const OTHER_LOCATION_NAMES = [
+/** One pool for every room, so a room's name never hints that it is the crime scene. */
+export const LOCATION_DESCRIPTIONS = [
+  "Open to every guest that evening.",
+  "Lit until late; the door was never locked.",
+  "Reached from the main corridor.",
+  "Used by the household and guests alike.",
+  "A room several guests passed through during the evening.",
+];
+
+export const LOCATION_NAMES = [
+  "The Study", "The Library", "The Conservatory", "The Office",
   "Garden Terrace", "Kitchen", "Guest Room", "Wine Cellar", "Dining Room",
   "Billiard Room", "Rooftop Terrace", "Servants' Quarters", "Chapel",
   "Boat House", "Greenhouse", "East Wing", "West Wing", "Attic",

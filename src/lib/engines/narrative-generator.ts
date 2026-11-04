@@ -22,8 +22,8 @@ import {
   NON_CULPRIT_RELATIONSHIPS,
   METHOD_NAMES,
   PERSONALITIES,
-  CRIME_LOCATION_NAMES,
-  OTHER_LOCATION_NAMES,
+  LOCATION_NAMES,
+  LOCATION_DESCRIPTIONS,
   FALLBACKS,
 } from "@/data/generator-content";
 
@@ -120,22 +120,22 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   const victimName = namePool[0];
   const suspectName = new Map(puzzle.suspects.map((id, i) => [id, namePool[i + 1]]));
 
+  // Nothing the player sees before the reveal may single out the crime room:
+  // names come from one pool, and claims/exhibits are spread over every room.
   const otherLocationIds = puzzle.locations.filter((id) => id !== puzzle.solution.location);
-  const crimeLocationName = names.pick(CRIME_LOCATION_NAMES);
-  const otherLocationNames = names.sample(OTHER_LOCATION_NAMES, otherLocationIds.length);
-  const locationName = new Map<string, string>([
-    [puzzle.solution.location, crimeLocationName],
-    ...otherLocationIds.map((id, i): [string, string] => [id, otherLocationNames[i]]),
-  ]);
+  const roomNames = names.sample(LOCATION_NAMES, puzzle.locations.length);
+  const locationName = new Map(puzzle.locations.map((id, i) => [id, roomNames[i]]));
+  const crimeLocationName = locationName.get(puzzle.solution.location)!;
 
   const methodNamePool = names.sample(METHOD_NAMES, puzzle.methods.length);
   const methodName = new Map(puzzle.methods.map((id, i) => [id, methodNamePool[i]]));
 
   const culpritId = puzzle.solution.culprit;
   const nonCulpritSuspects = puzzle.suspects.filter((id) => id !== culpritId);
-  // Each non-culprit suspect gets exactly one of the non-crime locations as their alibi.
-  const alibiLocationFor = new Map(nonCulpritSuspects.map((id, i) => [id, otherLocationIds[i % otherLocationIds.length]]));
-  const culpritFakeAlibiLocation = otherLocationIds[0];
+  // Innocent whereabouts are earlier in the evening and may be any room, the
+  // crime room included, so the one room nobody mentions is not the answer.
+  const alibiLocationFor = new Map(nonCulpritSuspects.map((id) => [id, names.pick(puzzle.locations)]));
+  const culpritFakeAlibiLocation = names.pick(otherLocationIds);
 
   const nameOf = (axis: Axis, value: string) =>
     axis === "method" ? methodName.get(value)! : axis === "location" ? locationName.get(value)! : suspectName.get(value)!;
@@ -162,7 +162,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
           events: [eventFor(clue.axis, clue.value)],
           characters: suspectsIn(clue.axis, clue.value),
           type: clue.axis === "culprit" || clue.axis === "falseAlibi" ? "witness_statement" : "medical_report",
-          locationId: clue.axis === "location" ? clue.value : puzzle.solution.location,
+          locationId: clue.axis === "location" ? clue.value : names.pick(puzzle.locations),
         };
       }
       case "linked":
@@ -178,7 +178,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
           events: dedupe([eventFor(clue.axisA, clue.valueA), eventFor(clue.axisB, clue.valueB)]),
           characters: dedupe([...suspectsIn(clue.axisA, clue.valueA), ...suspectsIn(clue.axisB, clue.valueB)]),
           type: "document",
-          locationId: clue.axisA === "location" ? clue.valueA : clue.axisB === "location" ? clue.valueB : puzzle.solution.location,
+          locationId: clue.axisA === "location" ? clue.valueA : clue.axisB === "location" ? clue.valueB : names.pick(puzzle.locations),
         };
       }
       case "conditional": {
@@ -191,7 +191,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
           events: dedupe([eventFor(clue.ifAxis, clue.ifValue), eventFor(clue.thenAxis, clue.thenValue)]),
           characters: dedupe([...suspectsIn(clue.ifAxis, clue.ifValue), ...suspectsIn(clue.thenAxis, clue.thenValue)]),
           type: "document",
-          locationId: clue.ifAxis === "location" ? clue.ifValue : clue.thenAxis === "location" ? clue.thenValue : puzzle.solution.location,
+          locationId: clue.ifAxis === "location" ? clue.ifValue : clue.thenAxis === "location" ? clue.thenValue : names.pick(puzzle.locations),
         };
       }
     }
@@ -274,13 +274,13 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       knowledge: [
         {
           id: `know_${id}_alibi`,
-          fact: `${name} spent the critical window at ${locationName.get(alibiLocation)}.`,
+          fact: `${name} spent the early evening at ${locationName.get(alibiLocation)}.`,
           relatedEvents: [`evt_alibi_${id}`],
           source: "witnessed",
           sensitive: false,
         },
       ],
-      doesNotKnow: [`Anything about what happened to ${victimName} at ${crimeLocationName}.`],
+      doesNotKnow: [`Anything about how or where ${victimName} was killed.`],
       lies: [],
     };
   });
@@ -299,7 +299,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       (id): TimelineEvent => ({
         id: `evt_alibi_${id}`,
         time: `2${names.int(2)}:${names.pick(["00", "15", "30", "45"])}`,
-        description: `${suspectName.get(id)} was at ${locationName.get(alibiLocationFor.get(id)!)} during the critical window.`,
+        description: `${suspectName.get(id)} was at ${locationName.get(alibiLocationFor.get(id)!)} earlier in the evening.`,
         locationId: alibiLocationFor.get(id)!,
         involvedCharacterIds: [id],
         isTrue: true,
@@ -308,7 +308,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     {
       id: "evt_body_found",
       time: "23:30",
-      description: `${victimName}'s body is discovered at ${crimeLocationName}.`,
+      description: `${victimName}'s body is discovered; it had been moved after death.`,
       locationId: puzzle.solution.location,
       involvedCharacterIds: [],
       isTrue: true,
@@ -318,7 +318,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   const locations = puzzle.locations.map((id) => ({
     id,
     name: locationName.get(id)!,
-    description: id === puzzle.solution.location ? `Where ${victimName} was found.` : "A location guests had access to that evening.",
+    description: names.pick(LOCATION_DESCRIPTIONS),
     connectedTo: [],
   }));
 
@@ -327,10 +327,10 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
 
   const truth: CaseTruth = {
     id: `generated-${seed}`,
-    title: `The ${crimeLocationName.replace(/^The /, "")} Case`,
+    title: `The ${victimName.split(" ").pop()} Case`,
     difficulty,
     seed,
-    victim: { name: victimName, description: `Found dead at ${crimeLocationName} the night of a gathering at the estate.` },
+    victim: { name: victimName, description: "Found dead the night of a gathering at the estate; the body had been moved, so where the killing happened is for you to establish." },
     locations,
     characters,
     timeline,
