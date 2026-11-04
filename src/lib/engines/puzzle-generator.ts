@@ -15,7 +15,7 @@ import { createRng } from "./prng";
 export interface GeneratePuzzleCaseOptions {
   seed: string;
   suspectCount: number;
-  /** Drop every clue the unique answer does not need (anchors stay), so the player must chain deductions. */
+  /** Rules v2: a minimal clue set drawn from all true clues (decoys included), with no forced anchors or "is" clues. */
   minimal?: boolean;
 }
 
@@ -65,6 +65,62 @@ function buildTrueCluePool(
   return pool;
 }
 
+const PAIR_AXES: [Axis, Axis][] = [
+  ["culprit", "method"],
+  ["culprit", "location"],
+  ["method", "location"],
+];
+
+/**
+ * Rules v2 pool: every true clue, including pair clues about wrong values
+ * ("if Bram did it, it was the cellar" is true when Bram is innocent). Without
+ * these, merely being named in an if/either clue gives the answer away.
+ */
+function buildFullTruePool(solution: PuzzleSolution, suspects: string[], methods: string[], locations: string[]): Clue[] {
+  const domain: Record<Axis, string[]> = { culprit: suspects, method: methods, location: locations, falseAlibi: suspects };
+  const answer: Record<Axis, string> = { culprit: solution.culprit, method: solution.method, location: solution.location, falseAlibi: solution.falseAlibi };
+  const pool: Clue[] = [];
+  for (const axis of ["culprit", "method", "location", "falseAlibi"] as Axis[]) {
+    for (const value of otherValues(domain[axis], answer[axis])) pool.push({ kind: "not", axis, value });
+  }
+  for (const [axisA, axisB] of PAIR_AXES) {
+    for (const valueA of domain[axisA]) {
+      for (const valueB of domain[axisB]) {
+        const a = valueA === answer[axisA];
+        const b = valueB === answer[axisB];
+        if (a === b) pool.push({ kind: "linked", axisA, valueA, axisB, valueB });
+        if (!(a && b)) pool.push({ kind: "not-linked", axisA, valueA, axisB, valueB });
+        if (!a || b) pool.push({ kind: "conditional", ifAxis: axisA, ifValue: valueA, thenAxis: axisB, thenValue: valueB, thenNegated: false });
+      }
+    }
+  }
+  return pool;
+}
+
+/**
+ * The "who gets named" shortcut: if the if/either/not-both exhibits mention
+ * only the answer, or every option but the answer, a player can read it off
+ * without deducing anything.
+ */
+export function namesGiveAnswerAway({ suspects, methods, locations, clues, solution }: PuzzleCase): boolean {
+  const named: Record<string, Set<string>> = { culprit: new Set(), method: new Set(), location: new Set() };
+  const add = (axis: Axis, value: string) => named[axis === "falseAlibi" ? "culprit" : axis].add(value);
+  for (const c of clues) {
+    if (c.kind === "linked" || c.kind === "not-linked") {
+      add(c.axisA, c.valueA);
+      add(c.axisB, c.valueB);
+    } else if (c.kind === "conditional") {
+      add(c.ifAxis, c.ifValue);
+      add(c.thenAxis, c.thenValue);
+    }
+  }
+  const answer: Record<string, string> = { culprit: solution.culprit, method: solution.method, location: solution.location };
+  const size: Record<string, number> = { culprit: suspects.length, method: methods.length, location: locations.length };
+  return Object.keys(named).some((axis) =>
+    named[axis].has(answer[axis]) ? named[axis].size === 1 : named[axis].size === size[axis] - 1
+  );
+}
+
 export function generatePuzzleCase({ seed, suspectCount, minimal = false }: GeneratePuzzleCaseOptions): PuzzleCase {
   const rng = createRng(seed);
   const suspects = Array.from({ length: suspectCount }, (_, i) => `suspect_${i}`);
@@ -79,33 +135,25 @@ export function generatePuzzleCase({ seed, suspectCount, minimal = false }: Gene
     falseAlibi: culprit,
   };
 
+  if (minimal) return generateMinimal(rng, seed, suspects, methods, locations, solution);
+
   const pool = buildTrueCluePool(solution, suspects, methods, locations);
 
   // Always include the two clues that directly tie the culprit to a method/location
   // (not merely eliminate everyone else) — the deduction should end on a positive
   // link, not pure elimination, and downstream narrative rendering needs at least
   // one clue that names the culprit to build the accusation's key evidence from.
-  // Minimal mode keeps no forced anchors and no "is" clues (those state an answer outright), so the answer has to be chained.
-  const usable = minimal ? pool.filter((c) => c.kind !== "is") : pool;
-  const anchorClues = minimal ? [] : pool.filter(
+  const anchorClues = pool.filter(
     (c): c is Extract<Clue, { kind: "linked" }> =>
       c.kind === "linked" && c.axisA === "culprit" && (c.axisB === "method" || c.axisB === "location")
   );
-  const restPool = usable.filter((c) => !anchorClues.includes(c as never));
+  const restPool = pool.filter((c) => !anchorClues.includes(c as never));
   const shuffledPool = [...anchorClues, ...rng.sample(restPool, restPool.length)];
 
   const clues: Clue[] = [];
   for (const clue of shuffledPool) {
     clues.push(clue);
     if (clues.length >= anchorClues.length && solve({ suspects, methods, locations, clues }).isUnique) break;
-  }
-
-  if (minimal) {
-    // Try removing each non-anchor clue, in seeded order; keep the removal when uniqueness survives.
-    for (const clue of rng.sample(clues.slice(anchorClues.length), clues.length - anchorClues.length)) {
-      const without = clues.filter((c) => c !== clue);
-      if (solve({ suspects, methods, locations, clues: without }).isUnique) clues.splice(clues.indexOf(clue), 1);
-    }
   }
 
   const result = solve({ suspects, methods, locations, clues });
@@ -115,5 +163,37 @@ export function generatePuzzleCase({ seed, suspectCount, minimal = false }: Gene
     );
   }
 
+  return { suspects, methods, locations, clues, solution };
+}
+
+/** Rules v2: grow from the full true pool, prune to a minimal set, and redraw if the names give the answer away. */
+function generateMinimal(
+  rng: ReturnType<typeof createRng>,
+  seed: string,
+  suspects: string[],
+  methods: string[],
+  locations: string[],
+  solution: PuzzleSolution
+): PuzzleCase {
+  const pool = buildFullTruePool(solution, suspects, methods, locations);
+  const isUnique = (clues: Clue[]) => solve({ suspects, methods, locations, clues }).isUnique;
+  let clues: Clue[] = [];
+  for (let attempt = 0; attempt < 50; attempt++) {
+    clues = [];
+    for (const clue of rng.sample(pool, pool.length)) {
+      clues.push(clue);
+      if (isUnique(clues)) break;
+    }
+    // Drop each clue, in seeded order, whenever uniqueness survives without it.
+    for (const clue of rng.sample(clues, clues.length)) {
+      const without = clues.filter((c) => c !== clue);
+      if (isUnique(without)) clues = without;
+    }
+    if (!namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) break;
+  }
+  const result = solve({ suspects, methods, locations, clues });
+  if (!result.isUnique || JSON.stringify(result.solutions[0]) !== JSON.stringify(solution) || namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) {
+    throw new Error(`generatePuzzleCase: seed "${seed}" found no fair minimal clue set.`);
+  }
   return { suspects, methods, locations, clues, solution };
 }

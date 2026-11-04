@@ -128,18 +128,21 @@ The reveal lists the full trace under "How the exhibits decide it". Daily cases 
 
 Under v1, every case shipped about 20 exhibits. Two of them were forced "anchors" that tied the culprit to the method and the room, and most of the rest were redundant. The answer fell out of the first two exhibits plus a list of alibis.
 
-Rules v2 (`RULES_V2_FROM` in `narrative-generator.ts`) changes three things:
+Rules v2 (`RULES_V2_FROM` in `narrative-generator.ts`, `generateMinimal` in `puzzle-generator.ts`) changes four things:
 
 - **No forced anchors and no `is` clues.** No exhibit states an answer outright.
-- **Pruning.** After the set first becomes unique, each clue is tried for removal in seeded order. It is dropped if the answer stays unique. That leaves about 6–7 exhibits per case, and every one of them is needed.
-- **Names.** First and last names are drawn separately, so no two people in a case share either one.
+- **Decoys.** The clue pool holds every true clue, including if/either/not-both clues about wrong values. For example, "if Bram did it, it was the cellar" is true whenever Bram is innocent. Without these, being named in such an exhibit meant being the answer (QA found this in 97–100% of cases).
+- **Pruning.** After the set first becomes unique, each clue is tried for removal in seeded order. It is dropped if the answer stays unique, so every exhibit is needed. Typical counts: easy 5–8, medium 7–15, hard 9–21. Many steps now need two or more exhibits together.
+- **Shortcut check.** `namesGiveAnswerAway` rejects a set, and the generator redraws it, if the if/either exhibits name only the answer, or every option except the answer, on any axis.
 
-A typical v2 chain:
+Names are also drawn separately for first and last names, so no two people in a case share either one.
 
-1. Clear the five other persons.
-2. A conditional ("if the culprit is X, the method is M") then fixes the method.
-3. A second conditional fixes the room from the method.
+Key exhibits are the ones the deduction trace uses to settle the culprit, and the culprit's contradiction says so ("once the exhibits clear everyone else…"). The old "some exhibit names the culprit" validator rule is waived when the trace confirms the culprit.
 
-Key exhibits for the finding are the ones that clear the other suspects, since no anchor names the culprit. The old "some exhibit names the culprit" validator rule is waived when the trace confirms the culprit.
+Known v2 limits:
+
+- About a quarter of innocents' whereabouts are never unlocked in the Chronology.
+- A few "not" templates ("no signs of a struggle") read loosely beside poison or smoke.
+- "Exhibits relied upon" does not penalise ticking extras.
 
 Published dailies (2026-11-01 to 11-05) keep v1, and `daily-frozen.test.ts` enforces that.

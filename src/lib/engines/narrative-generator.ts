@@ -233,8 +233,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       return c.kind === "linked" && c.axisA === "culprit" && (c.axisB === "method" || c.axisB === "location");
     })
     .map((e) => e.id);
-  // Without anchors (minimal clue sets), the key exhibits are the ones that clear the other suspects.
-  const keyEvidenceIds = anchorEvidenceIds.length
+  // Rules v2 (and any case without anchors): the key exhibits are the ones the trace uses to settle the culprit.
+  const keyEvidenceIds = anchorEvidenceIds.length && !v2
     ? anchorEvidenceIds
     : [...new Set(deduction.filter((s) => s.axis === "culprit").flatMap((s) => s.evidenceIds))];
 
@@ -356,7 +356,9 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     contradictions: [
       {
         id: "contra_culprit_alibi",
-        description: `${suspectName.get(culpritId)} claims to have been elsewhere, but the evidence places them at ${crimeLocationName} during the critical window.`,
+        description: v2
+          ? `${suspectName.get(culpritId)} claims to have been elsewhere, but once the exhibits clear everyone else, theirs is the only story left that cannot be true.`
+          : `${suspectName.get(culpritId)} claims to have been elsewhere, but the evidence places them at ${crimeLocationName} during the critical window.`,
         characterId: culpritId,
         claim: `lie_${culpritId}_alibi`,
         truth: "evt_crime",
