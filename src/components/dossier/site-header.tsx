@@ -27,7 +27,7 @@ export function SiteHeader({
 
         <div className="ml-auto flex items-center gap-4 md:gap-8 text-[var(--on-ink-muted)]">
           {caseTitle && (
-            <p className="label md:hidden whitespace-nowrap text-[var(--brass-light)]">Nº {caseNumber ?? "—"}</p>
+            <p className="label hidden sm:block md:hidden whitespace-nowrap text-[var(--brass-light)]">Nº {caseNumber ?? "—"}</p>
           )}
           {caseTitle && (
             <p className="label hidden md:block truncate max-w-[22rem]">

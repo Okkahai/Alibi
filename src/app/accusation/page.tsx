@@ -39,6 +39,7 @@ export default function AccusationPage() {
   const [timelineEventIds, setTimelineEventIds] = useState<string[]>([]);
   const [result, setResult] = useState<ScoreResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   function toggle(list: string[], id: string, setter: (v: string[]) => void) {
     setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -163,7 +164,10 @@ export default function AccusationPage() {
                 key={c.id}
                 role="radio"
                 aria-checked={chosen}
-                onClick={() => setCulpritId(c.id)}
+                onClick={() => {
+                  setCulpritId(c.id);
+                  setConfirming(false);
+                }}
                 className={`text-left border p-2 ${chosen ? "border-[var(--accent)] bg-[var(--surface)] outline outline-2 outline-[var(--accent)]" : "border-[var(--border)] hover:border-[var(--rule-strong)]"}`}
               >
                 <Portrait seed={c.name} view="profile" framed={false} className="w-16 h-auto" />
@@ -225,10 +229,23 @@ export default function AccusationPage() {
       </fieldset>
 
       <div className="mt-10 on-ink px-5 py-5 flex flex-wrap items-center gap-4">
-        <p className="label text-[var(--on-ink-muted)]">{culpritId ? `Named: ${suspects.find((c) => c.id === culpritId)?.name}` : "Name the person responsible to submit."}</p>
-        <button className="btn btn-primary ml-auto" onClick={submit} disabled={!culpritId || submitting}>
-          {submitting ? "Submitting…" : "Sign and submit the finding"}
-        </button>
+        <p className="label text-[var(--on-ink-muted)]" aria-live="polite">
+          {!culpritId
+            ? "Name the person responsible to submit."
+            : confirming
+              ? `Final: you name ${suspects.find((c) => c.id === culpritId)?.name}. This cannot be withdrawn.`
+              : `Named: ${suspects.find((c) => c.id === culpritId)?.name}`}
+        </p>
+        <div className="ml-auto flex gap-2">
+          {confirming && (
+            <button className="btn" onClick={() => setConfirming(false)}>
+              Revise
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => (confirming ? submit() : setConfirming(true))} disabled={!culpritId || submitting}>
+            {submitting ? "Submitting…" : confirming ? "Sign and submit" : "Review the finding"}
+          </button>
+        </div>
       </div>
     </article>
   );

@@ -64,7 +64,8 @@ export default function InterrogationPage() {
   return (
     <article className="grid gap-6 grid-cols-[minmax(0,1fr)] lg:grid-cols-[13rem_minmax(0,1fr)]">
       <div className="min-w-0">
-        <p className="label text-[var(--copper)]">Section III · Interrogation</p>
+        <p className="label text-[var(--copper)]">Section III</p>
+        <h1 className="mt-1 text-[2.4rem] italic font-medium leading-none">Interrogation</h1>
         <h2 className="label text-[var(--muted)] mt-4 pb-2 border-b-2 border-[var(--rule-strong)]">Persons to question</h2>
         <ul className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible" role="tablist" aria-label="Persons to question">
           {suspects.map((c, i) => {
@@ -100,7 +101,7 @@ export default function InterrogationPage() {
           )}
           <div className="min-w-0">
             <p className="label text-[var(--brass-light)]">Statement taken under caution</p>
-            <h1 className="text-[2.2rem] italic font-medium text-[var(--on-ink)] leading-tight truncate">{subject?.name}</h1>
+            <h2 className="text-[2.2rem] italic font-medium text-[var(--on-ink)] leading-tight truncate">{subject?.name}</h2>
           </div>
           <p className="label text-[var(--on-ink-muted)] ml-auto hidden sm:block">{turns.filter((t) => t.speaker === "player").length} questions put</p>
         </header>
@@ -124,19 +125,19 @@ export default function InterrogationPage() {
         </div>
 
         <div className="mt-4 grid gap-3">
-          <label className="grid gap-1">
+          <label className="grid gap-1 min-w-0">
             <span className="label text-[var(--muted)]">Put an exhibit to the witness (optional)</span>
-            <select value={evidenceShownId} onChange={(e) => setEvidenceShownId(e.target.value)} className="min-h-11 px-3 bg-[var(--surface)] border border-[var(--rule-strong)] text-sm">
+            <select value={evidenceShownId} onChange={(e) => setEvidenceShownId(e.target.value)} className="w-full min-w-0 min-h-11 px-3 bg-[var(--surface)] border border-[var(--rule-strong)] text-sm">
               <option value="">No exhibit shown</option>
               {discoveredEvidence.map((ev) => (
                 <option key={ev.id} value={ev.id}>
-                  {ev.description.slice(0, 70)}
+                  EX-{String(truth.evidence.indexOf(ev) + 1).padStart(2, "0")} · {ev.description.length > 64 ? `${ev.description.slice(0, 64)}…` : ev.description}
                 </option>
               ))}
             </select>
           </label>
-          <div className="flex gap-2">
-            <label className="flex-1">
+          <div className="flex gap-2 min-w-0">
+            <label className="flex-1 min-w-0">
               <span className="sr-only">Your question</span>
               <input
                 value={question}

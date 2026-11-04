@@ -1,15 +1,14 @@
 "use client";
 
 import { useGame } from "@/lib/state/game-context";
+import { knownEvents } from "@/lib/state/known-events";
 
 export default function TimelinePage() {
   const { truth, state } = useGame();
 
   // An event is "unlocked" once evidence or dialogue referencing it has been discovered —
   // approximated here by any discovered evidence item whose relatedEventIds includes it.
-  const unlockedEventIds = new Set(
-    truth.evidence.filter((e) => state.discoveredEvidenceIds.includes(e.id)).flatMap((e) => e.relatedEventIds)
-  );
+  const unlockedEventIds = new Set(knownEvents(truth, state).map((e) => e.id));
 
   const sorted = [...truth.timeline].sort((a, b) => a.time.localeCompare(b.time));
 
@@ -21,7 +20,7 @@ export default function TimelinePage() {
           <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium">The night, in order</h1>
         </div>
         <p className="md:ml-auto md:max-w-[24rem] text-sm text-[var(--muted)]">
-          Entries stay redacted until an exhibit places them. {unlockedEventIds.size > 0 ? `${sorted.filter((e) => unlockedEventIds.has(e.id)).length} of ${sorted.length} entries established.` : "No entries established yet."}
+          Entries stay redacted until an exhibit places them. {unlockedEventIds.size > 0 ? `${unlockedEventIds.size} of ${sorted.length} entries established.` : "No entries established yet."}
         </p>
       </header>
 

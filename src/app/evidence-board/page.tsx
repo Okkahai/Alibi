@@ -9,7 +9,10 @@ import type { CaseTruth } from "@/lib/schema/case-truth";
 function labelFor(truth: CaseTruth, node: BoardNode): string {
   if (node.kind === "note") return node.text ?? "Note";
   if (node.kind === "suspect") return truth.characters.find((c) => c.id === node.refId)?.name ?? node.refId ?? "?";
-  if (node.kind === "evidence") return truth.evidence.find((e) => e.id === node.refId)?.type.replace("_", " ") ?? "?";
+  if (node.kind === "evidence") {
+    const i = truth.evidence.findIndex((e) => e.id === node.refId);
+    return i < 0 ? "?" : `EX-${String(i + 1).padStart(2, "0")} · ${truth.evidence[i].description}`;
+  }
   if (node.kind === "location") return truth.locations.find((l) => l.id === node.refId)?.name ?? "?";
   if (node.kind === "event") return truth.timeline.find((e) => e.id === node.refId)?.time ?? "?";
   return "?";
@@ -52,7 +55,7 @@ export default function EvidenceBoardPage() {
 
   const refOptions: Record<string, { id: string; label: string }[]> = {
     suspect: suspects.map((c) => ({ id: c.id, label: c.name })),
-    evidence: discoveredEvidence.map((e) => ({ id: e.id, label: `${e.type}: ${e.description.slice(0, 30)}` })),
+    evidence: discoveredEvidence.map((e) => ({ id: e.id, label: `EX-${String(truth.evidence.indexOf(e) + 1).padStart(2, "0")} · ${e.description.slice(0, 48)}…` })),
     location: truth.locations.map((l) => ({ id: l.id, label: l.name })),
     event: knownEvents(truth, state).map((e) => ({ id: e.id, label: `${e.time} ${e.description.slice(0, 30)}` })),
     note: [],
@@ -137,14 +140,14 @@ export default function EvidenceBoardPage() {
             style={{ left: node.x, top: node.y }}
           >
             <div className="flex items-center justify-between">
-              <span className="label text-[0.6rem] text-[var(--copper)]">{node.kind === "suspect" ? "person" : node.kind === "location" ? "room" : node.kind}</span>
+              <span className="label text-[0.6rem] text-[var(--copper)]">{node.kind === "suspect" ? "person" : node.kind === "location" ? "room" : node.kind === "evidence" ? "exhibit" : node.kind}</span>
               <button
                 aria-label="Unpin"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeBoardNode(node.id);
                 }}
-                className="text-[var(--muted)] hover:text-[var(--danger)] px-1"
+                className="text-[var(--muted)] hover:text-[var(--danger)] -my-2 -mr-2 min-w-11 min-h-11"
               >
                 ×
               </button>

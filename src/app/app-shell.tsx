@@ -61,13 +61,16 @@ function ActiveCase({ selection, children }: { selection: CaseSelection; childre
 
   return (
     <>
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-10 focus:m-2 focus:p-3 focus:bg-[var(--surface)] label">
+        Skip to content
+      </a>
       <SiteHeader caseNumber={meta.number} caseTitle={truth.title} progress={progress} />
       {pathname === "/" ? (
-        <main className="w-full">{children}</main>
+        <main id="main" className="w-full">{children}</main>
       ) : (
         <div className="w-full mx-auto max-w-7xl px-4 md:px-8 py-6 lg:py-10 grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
           <DossierRail caseNumber={meta.number} caseTitle={truth.title} />
-          <main className="min-w-0">{children}</main>
+          <main id="main" className="min-w-0">{children}</main>
         </div>
       )}
     </>

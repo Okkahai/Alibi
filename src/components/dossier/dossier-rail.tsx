@@ -40,7 +40,7 @@ export function DossierRail({ caseNumber, caseTitle }: { caseNumber: string | nu
       <div className="hidden lg:block">{list}</div>
       <details className="lg:hidden border-y border-[var(--rule-strong)]">
         <summary className="py-3 cursor-pointer flex items-baseline gap-3 list-none">
-          <span className="label text-[var(--copper)]">Dossier</span>
+          <span className="label text-[var(--copper)]">Nº {caseNumber ?? "—"}</span>
           <span className="display text-lg italic text-[var(--copper)]">{current?.numeral}</span>
           <span className="font-semibold">{current?.label ?? "Contents"}</span>
           <span className="ml-auto label">Contents ▾</span>

@@ -16,7 +16,7 @@ export default function CrimeScenePage() {
       <header className="flex flex-col md:flex-row md:items-end gap-3 border-b-2 border-[var(--rule-strong)] pb-4">
         <div>
           <p className="label text-[var(--copper)]">Section I · The scene</p>
-          <p className="mt-2 display text-[3rem] md:text-[3.6rem] italic font-medium leading-none">Plan of the house</p>
+          <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium leading-none">Plan of the house</h1>
         </div>
         <p className="md:ml-auto md:max-w-[24rem] text-sm text-[var(--muted)]">
           Choose a room on the plan to enter it. Markers show where something may be recovered; examining one enters it in the catalogue.
@@ -46,7 +46,7 @@ export default function CrimeScenePage() {
                 <span className={`label ${active ? "text-[var(--copper)]" : "text-[var(--on-ink-muted)]"}`}>Rm. {String(i + 1).padStart(2, "0")}</span>
                 <span className="display block text-xl md:text-2xl italic mt-1">{loc.name}</span>
                 <span className={`label mt-auto pt-2 ${active ? "text-[var(--muted)]" : "text-[var(--on-ink-muted)]"}`}>
-                  {visited ? `✓ Searched · ${found}/${total}` : "· Not yet entered"}
+                  {visited && found === total ? `✓ Searched · ${found}/${total}` : visited ? `◐ Entered · ${found}/${total}` : "· Not yet entered"}
                 </span>
               </button>
             );
@@ -58,12 +58,12 @@ export default function CrimeScenePage() {
       {activeLocation && (
         <section className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]" aria-live="polite">
           <div>
-            <h1 className="text-[2.6rem] leading-tight">{activeLocation.name}</h1>
+            <h2 className="text-[2.6rem] leading-tight">{activeLocation.name}</h2>
             <p className="mt-2 text-[var(--muted)]">{activeLocation.description}</p>
           </div>
 
           <div>
-            <h2 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2 font-[family-name:var(--font-plex-mono)] text-[0.6875rem]">Markers in this room</h2>
+            <h3 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Markers in this room</h3>
             {evidenceHere.length === 0 && <p className="py-4 text-sm text-[var(--muted)]">Nothing of note was marked in this room.</p>}
             <ol>
               {evidenceHere.map((ev, i) => {
