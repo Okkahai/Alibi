@@ -105,6 +105,9 @@ const CONDITIONAL_TEMPLATES: Array<(ifNoun: string, ifName: string, thenNoun: st
     `Should ${ifNoun} turn out to be ${ifName}, ${thenNoun} would ${negated ? "not be" : "have to be"} ${thenName}.`,
 ];
 
+/** First daily generated under rules v2: pruned (harder) clue sets, no repeated first or last names. */
+export const RULES_V2_FROM = "2026-11-06";
+
 export interface GenerateCaseOptions {
   seed: string;
   difficulty: Difficulty;
@@ -115,10 +118,18 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   const countRng = createRng(seed);
   const suspectCount = min + countRng.int(max - min + 1);
 
-  const puzzle = generatePuzzleCase({ seed: `${seed}:puzzle`, suspectCount });
+  // Published dailies are frozen (docs/DAILY_SYSTEM.md): rule changes apply to dailies from their effective date, and to every practice seed.
+  const isDaily = /^\d{4}-\d{2}-\d{2}$/.test(seed);
+  const v2 = !isDaily || seed >= RULES_V2_FROM;
+  const puzzle = generatePuzzleCase({ seed: `${seed}:puzzle`, suspectCount, minimal: v2 });
   const names = createRng(`${seed}:narrative`);
 
-  const namePool = names.sample(FIRST_NAMES.flatMap((f) => LAST_NAMES.map((l) => `${f} ${l}`)), suspectCount + 1);
+  const namePool = v2
+    ? (() => {
+        const last = names.sample(LAST_NAMES, suspectCount + 1);
+        return names.sample(FIRST_NAMES, suspectCount + 1).map((f, i) => `${f} ${last[i]}`);
+      })()
+    : names.sample(FIRST_NAMES.flatMap((f) => LAST_NAMES.map((l) => `${f} ${l}`)), suspectCount + 1);
   const victimName = namePool[0];
   const suspectName = new Map(puzzle.suspects.map((id, i) => [id, namePool[i + 1]]));
 
@@ -215,12 +226,17 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
 
   // Evidence ids rendering the two culprit-implicating anchor clues (always
   // present — see puzzle-generator.ts) — what breaks the culprit's lie.
-  const keyEvidenceIds = evidence
+  const deduction = buildDeductionTrace(puzzle).map(({ clues, ...step }) => ({ ...step, evidenceIds: clues.map((n) => evidence[n].id) }));
+  const anchorEvidenceIds = evidence
     .filter((_, i) => {
       const c = puzzle.clues[i];
       return c.kind === "linked" && c.axisA === "culprit" && (c.axisB === "method" || c.axisB === "location");
     })
     .map((e) => e.id);
+  // Without anchors (minimal clue sets), the key exhibits are the ones that clear the other suspects.
+  const keyEvidenceIds = anchorEvidenceIds.length
+    ? anchorEvidenceIds
+    : [...new Set(deduction.filter((s) => s.axis === "culprit").flatMap((s) => s.evidenceIds))];
 
   const characters: Character[] = puzzle.suspects.map((id) => {
     const isCulprit = id === culpritId;
@@ -336,7 +352,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     timeline,
     evidence,
     methods: puzzle.methods.map((id) => ({ id, name: methodName.get(id)! })),
-    deduction: buildDeductionTrace(puzzle).map(({ clues, ...step }) => ({ ...step, evidenceIds: clues.map((i) => evidence[i].id) })),
+    deduction,
     contradictions: [
       {
         id: "contra_culprit_alibi",

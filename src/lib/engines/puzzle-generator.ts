@@ -15,6 +15,8 @@ import { createRng } from "./prng";
 export interface GeneratePuzzleCaseOptions {
   seed: string;
   suspectCount: number;
+  /** Drop every clue the unique answer does not need (anchors stay), so the player must chain deductions. */
+  minimal?: boolean;
 }
 
 function otherValues(all: string[], value: string): string[] {
@@ -63,7 +65,7 @@ function buildTrueCluePool(
   return pool;
 }
 
-export function generatePuzzleCase({ seed, suspectCount }: GeneratePuzzleCaseOptions): PuzzleCase {
+export function generatePuzzleCase({ seed, suspectCount, minimal = false }: GeneratePuzzleCaseOptions): PuzzleCase {
   const rng = createRng(seed);
   const suspects = Array.from({ length: suspectCount }, (_, i) => `suspect_${i}`);
   const methods = Array.from({ length: suspectCount }, (_, i) => `method_${i}`);
@@ -83,17 +85,27 @@ export function generatePuzzleCase({ seed, suspectCount }: GeneratePuzzleCaseOpt
   // (not merely eliminate everyone else) — the deduction should end on a positive
   // link, not pure elimination, and downstream narrative rendering needs at least
   // one clue that names the culprit to build the accusation's key evidence from.
-  const anchorClues = pool.filter(
+  // Minimal mode keeps no forced anchors and no "is" clues (those state an answer outright), so the answer has to be chained.
+  const usable = minimal ? pool.filter((c) => c.kind !== "is") : pool;
+  const anchorClues = minimal ? [] : pool.filter(
     (c): c is Extract<Clue, { kind: "linked" }> =>
       c.kind === "linked" && c.axisA === "culprit" && (c.axisB === "method" || c.axisB === "location")
   );
-  const restPool = pool.filter((c) => !anchorClues.includes(c as never));
+  const restPool = usable.filter((c) => !anchorClues.includes(c as never));
   const shuffledPool = [...anchorClues, ...rng.sample(restPool, restPool.length)];
 
   const clues: Clue[] = [];
   for (const clue of shuffledPool) {
     clues.push(clue);
     if (clues.length >= anchorClues.length && solve({ suspects, methods, locations, clues }).isUnique) break;
+  }
+
+  if (minimal) {
+    // Try removing each non-anchor clue, in seeded order; keep the removal when uniqueness survives.
+    for (const clue of rng.sample(clues.slice(anchorClues.length), clues.length - anchorClues.length)) {
+      const without = clues.filter((c) => c !== clue);
+      if (solve({ suspects, methods, locations, clues: without }).isUnique) clues.splice(clues.indexOf(clue), 1);
+    }
   }
 
   const result = solve({ suspects, methods, locations, clues });

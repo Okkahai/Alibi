@@ -120,7 +120,9 @@ export function validateCaseTruth(truth: CaseTruth): ValidationResult {
   const implicatingEvidence = truth.evidence.filter(
     (e) => e.reliability !== "misleading" && !e.isRedHerring && e.relatedCharacterIds.includes(culpritId)
   );
-  if (implicatingEvidence.length === 0) {
+  //    A solver-proven deduction confirming the culprit is a stronger proof: pure elimination names no one.
+  const provenByTrace = truth.deduction.some((s) => s.kind === "confirm" && s.axis === "culprit" && s.value === culpritId);
+  if (implicatingEvidence.length === 0 && !provenByTrace) {
     issues.push({
       rule: "solvable-implicating-evidence",
       message: "No reliable, non-red-herring evidence implicates the culprit — case is not solvable.",

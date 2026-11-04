@@ -122,4 +122,24 @@ The reveal lists the full trace under "How the exhibits decide it". Daily cases 
   - A step whose exhibit is still unexamined stays at level 1, and the hint names no room. This stops hints acting as an oracle or leaking a room.
   - Hints cost 3 points each, with no cap.
 - **Year-long check.** `__tests__/daily-window.test.ts` generates 365 dailies from launch and checks that the clue-only trace confirms the true culprit and room.
-- **Difficulty is still low.** Every elimination needs only one exhibit, about 12 per case. A harder clue selection is planned for the content phase.
+- **Difficulty**: addressed by rules v2 below.
+
+## Rules v2: minimal clue sets (dailies from 2026-11-06, every practice seed)
+
+Under v1, every case shipped about 20 exhibits. Two of them were forced "anchors" that tied the culprit to the method and the room, and most of the rest were redundant. The answer fell out of the first two exhibits plus a list of alibis.
+
+Rules v2 (`RULES_V2_FROM` in `narrative-generator.ts`) changes three things:
+
+- **No forced anchors and no `is` clues.** No exhibit states an answer outright.
+- **Pruning.** After the set first becomes unique, each clue is tried for removal in seeded order. It is dropped if the answer stays unique. That leaves about 6–7 exhibits per case, and every one of them is needed.
+- **Names.** First and last names are drawn separately, so no two people in a case share either one.
+
+A typical v2 chain:
+
+1. Clear the five other persons.
+2. A conditional ("if the culprit is X, the method is M") then fixes the method.
+3. A second conditional fixes the room from the method.
+
+Key exhibits for the finding are the ones that clear the other suspects, since no anchor names the culprit. The old "some exhibit names the culprit" validator rule is waived when the trace confirms the culprit.
+
+Published dailies (2026-11-01 to 11-05) keep v1, and `daily-frozen.test.ts` enforces that.
