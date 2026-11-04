@@ -1,87 +1,93 @@
 # Design System — Forensic Modernism × Victorian Gothic
 
-Status: **foundation implemented** (tokens, type, base components in
-`src/app/globals.css`, shell in `src/app/layout.tsx`). Page-level layouts
-(Today's case, deduction matrix, reveal) are still the old structure and get
-rebuilt in the vertical-slice phase. This file is the source of truth for the
-visual language; pages must use these tokens, never raw colours.
+Status: **v2, redesign in progress.** Implemented: shell (ink masthead, dossier
+index), homepage frontispiece, suspects line-up and identification records,
+original SVG art. Still on the old layout: scene, exhibits, chronology,
+interrogation, board, conclusion. References and the reasoning behind these
+rules: `docs/DESIGN_RESEARCH.md`.
+
+The v1 foundation (all-beige paper, boxed cards, eight numbered nav links) was
+rejected as reading like a generic admin dashboard. v2 changes the
+*composition*, not only tokens.
 
 ## Intent
 
-A fictional forensic archive from an alternate Victorian era, set with modern
-editorial discipline. The *primary* voice is the laboratory report: numbered
-sections, fine rules, specimen identifiers, tabular metadata. The *secondary*
-voice is Victorian print: a serif display face, burgundy ink, oxidised copper,
-restrained ornament. Usability first — decoration never carries information.
+An interactive forensic archive from an alternate Victorian era, set by a
+modern editorial studio. Two voices:
 
-Rejected looks: SaaS dashboard (rounded cards, glow, gradients), horror-menu
-templates, beige texture behind ordinary cards, glassmorphism.
+- **Record (primary):** ivory sheets, hairline rules, mono field labels,
+  reference numbers first (`S-03`, `PL. I`, `Nº 004`), statements marked
+  "as stated · unverified". Never boxed cards — records are separated by a
+  2px ink rule on top and hairlines between fields.
+- **Engraving (secondary):** Cormorant italic display type, line-art plates
+  with hatching, the oxblood seal, numbered plates with lettered keys
+  (*a*, *b*, *c*) and captions *under* the image.
 
-## Colour tokens
+## Composition rules
 
-Light, paper-first. A dark variant was considered and deferred: the archival
-identity depends on ink-on-paper contrast, and a second theme doubles QA for
-little gameplay value right now.
+1. **One ink band per screen.** Each screen has exactly one dark section that
+   carries its image (home: the frontispiece; suspects: the line-up). Records
+   and working surfaces stay ivory.
+2. **Scale contrast.** One oversized element per screen (the case number at
+   10rem, the line-up), everything else small and precise.
+3. **Asymmetric two-column grid** (≈ 1.1 : 0.9) on desktop; collapses to one
+   column under 1024px with the image *after* the text and action.
+4. **No section-link grids.** Navigation is a table of contents (roman
+   numeral, title, gloss, dotted leader) on the case page, and a sticky side
+   index on investigation screens (a disclosure on mobile).
+5. **Masthead carries state, not sections:** wordmark, case number + title,
+   exhibits recovered (count + rule), Archive, Close file.
+
+## Colour tokens (`src/app/globals.css`)
 
 | Token | Value | Role |
 |---|---|---|
-| `--background` | `#efe9dc` | Archival paper (page) |
-| `--surface` | `#f7f3ea` | Aged ivory (sheets, panels) |
-| `--surface-raised` | `#e6dfcf` | Folder card / hover |
-| `--border` | `#c9bfab` | Fine rules |
-| `--rule-strong` | `#1d1a16` | Section rules, table heads |
-| `--foreground` | `#1d1a16` | Ink black (body text) |
-| `--muted` | `#5f584d` | Faded stone (secondary text) |
-| `--accent` | `#6b2232` | Burgundy ink (primary action, headings marks) |
-| `--accent-foreground` | `#f7f3ea` | Text on burgundy |
-| `--copper` | `#7a4f24` | Oxidised copper (evidence, specimen IDs) |
-| `--confirmed` | `#2f5d50` | Verdigris (confirmed deduction) |
-| `--excluded` | `#74695a` | Stone (eliminated possibility) |
-| `--warning` | `#735510` | Ochre |
-| `--danger` | `#9b2c1f` | Error / incorrect |
+| `--background` | `#f2ebdd` | Archival ivory (page) |
+| `--surface` | `#f8f3e8` | Sheet / plate paper |
+| `--surface-raised` | `#e9dfcb` | Hover |
+| `--border` | `#cbbca1` | Hairlines |
+| `--foreground`, `--ink`, `--rule-strong` | `#1c2321` | Ink: text, ink bands, record rules |
+| `--muted` | `#5a5952` | Secondary text on ivory |
+| `--on-ink` / `--on-ink-muted` | `#ede4d1` / `#aaa392` | Text on ink |
+| `--ink-rule` | `#3d4743` | Rules on ink |
+| `--accent` | `#682c3b` | Oxblood: primary action, seal, stated claims |
+| `--brass` / `--brass-light` | `#9c805a` / `#c4a77c` | Case numerals, labels on ink (large/label use only) |
+| `--copper` | `#6f5636` | Reference numbers on ivory |
+| `--confirmed` / `--excluded` / `--danger` | `#2f5d50` / `#6e6b62` / `#9b2c1f` | Logical status (always with glyph) |
 
-Measured contrast on `--surface` / `--background`: foreground 15.7 / 14.3,
-muted 6.3 / 5.8, accent 10.0 / 9.1, copper 6.4 / 5.8, confirmed 6.8 / 6.2,
-warning 6.3 / 5.7, danger 6.8 / 6.3 — all WCAG AA for body text. `--excluded`
-is 4.9 / 4.4: deliberately de-emphasised, only ever used together with the
-`✕` glyph and strike-through, never as the sole carrier of meaning.
-
-**Never colour alone.** Logical status always carries a glyph and a word:
-confirmed `✓`, excluded `✕` + strike-through, possible `·`. The `.status-*`
-classes in `globals.css` encode this.
+Brass on ink is for display-size numerals and uppercase labels only. Logical
+status always carries a glyph: confirmed `✓`, excluded `✕` + strike,
+possible `·`, open `◐`.
 
 ## Typography
 
-- **Display / headings:** Cormorant Garamond (600/700) — Victorian book serif,
-  used for case titles and section headings only.
-- **Interface / body:** IBM Plex Sans — neutral, highly legible at small sizes.
-- **Metadata:** IBM Plex Mono with tabular numerals — case numbers, times,
-  specimen IDs (`EV-07`), dates.
+- **Display:** Cormorant Garamond, normal + italic, lining numerals. Titles
+  in italic; case number upright at 6.5–10rem.
+- **Body:** IBM Plex Sans 15px / 1.55.
+- **Record labels and metadata:** IBM Plex Mono, uppercase `.label`
+  (11px, 0.14em tracking), tabular numerals.
 
-All three via `next/font/google` (self-hosted at build, no runtime request).
+## Illustration rules (`src/components/art/`)
 
-## Components (base)
+- Original hand-authored SVG only; no raster stock, no runtime image APIs,
+  no emoji as icons.
+- Two inks: line colour + paper. Tone comes from hatching patterns
+  (`Hatch`), never gradients or glows.
+- Plates are numbered (`PL. I`, `FIG. 1`), framed by a double rule, keyed
+  with italic letters, captioned beneath.
+- Portraits are Victorian silhouettes (front + profile, Bertillon-style
+  pair, height rule on the frame edge), seeded by the character's name so a
+  person always looks the same. On ink they invert (ivory silhouette).
+- The seal is the single oxblood ornament; one per screen at most.
 
-- `.sheet` — a document page: ivory surface, 1px rule, square corners,
-  no shadow. Replaces rounded dashboard cards (`.panel` is kept as an alias so
-  existing pages restyle without rewrites).
-- `.section-head` — numbered section header: mono index (`§ 02`), serif title,
-  hairline rule under.
-- `.specimen-id` — copper mono label for evidence/case identifiers.
-- `.btn`, `.btn-primary` — rectangular, uppercase-tracked small caps label;
-  primary is burgundy.
-- `.status-confirmed / -excluded / -possible` — glyph + colour + (for
-  excluded) strike-through.
-- Focus: 2px burgundy outline with offset on every interactive element
-  (`:focus-visible`).
+## Components
 
-## Motion
+`.label`, `.btn`/`.btn-primary` (square, mono uppercase), `.leader` (dotted
+contents leader), `.on-ink` (ink band), `.status-*`. `.panel`/`.sheet` remain
+only for not-yet-redesigned pages.
 
-Short and optional: 120–180 ms opacity/transform for reveals and stamps.
-`prefers-reduced-motion: reduce` disables all transitions/animations.
+## Interaction
 
-## Responsive
-
-Desktop-first (multi-column workspace), collapsing to one column under
-`768px`. Tap targets ≥ 44px on touch. The shell nav scrolls horizontally on
-small screens rather than wrapping into a second row.
+Focus: 2px oxblood outline (brass-light on ink). Hover: text turns oxblood;
+no lift, no shadow. Motion ≤180ms; `prefers-reduced-motion` disables it.
+Touch targets ≥ 44px.

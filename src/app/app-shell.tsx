@@ -1,46 +1,75 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { GameProvider } from "@/lib/state/game-context";
-import { CASE_SELECTION_KEY, resolveCaseTruth, type CaseSelection } from "@/lib/state/case-select";
-import { CasePicker } from "./case-picker";
+import { usePathname } from "next/navigation";
+import { GameProvider, useGame } from "@/lib/state/game-context";
+import { resolveCaseTruth, type CaseSelection } from "@/lib/state/case-select";
+import { getDailySelection } from "@/lib/engines/daily-case";
+import { SiteHeader } from "@/components/dossier/site-header";
+import { DossierRail } from "@/components/dossier/dossier-rail";
+import { Frontispiece } from "@/components/dossier/frontispiece";
+import { caseMeta, readSelection } from "@/components/dossier/case-meta";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [selection, setSelection] = useState<CaseSelection | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(CASE_SELECTION_KEY);
-    if (raw) {
-      try {
-        // Hydration step (server always starts with no selection), not a sync loop.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSelection(JSON.parse(raw));
-      } catch {
-        // corrupted selection, fall through to the picker
-      }
-    }
+    // Hydration step (server always starts with no selection), not a sync loop.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelection(readSelection());
     setHydrated(true);
   }, []);
 
-  const truth = useMemo(() => (selection ? resolveCaseTruth(selection) : null), [selection]);
+  const truth = useMemo(() => (selection ? safeResolve(selection) : null), [selection]);
 
-  if (!hydrated) return null;
+  if (!hydrated) return <SiteHeader />;
 
   if (!selection || !truth) {
+    // No case on the desk: today's daily case is the front page.
+    const daily = getDailySelection();
     return (
-      <CasePicker
-        onSelect={(next) => {
-          window.localStorage.setItem(CASE_SELECTION_KEY, JSON.stringify(next));
-          setSelection(next);
-        }}
-      />
+      <>
+        <SiteHeader />
+        <main>
+          <Frontispiece truth={resolveCaseTruth(daily)} mode={{ kind: "preview", selection: daily }} />
+        </main>
+      </>
     );
   }
 
   return (
     <GameProvider key={truth.id} truth={truth}>
-      {children}
+      <ActiveCase selection={selection}>{children}</ActiveCase>
     </GameProvider>
+  );
+}
+
+function safeResolve(selection: CaseSelection) {
+  try {
+    return resolveCaseTruth(selection);
+  } catch {
+    return null; // stale/unknown selection: fall back to the front page
+  }
+}
+
+function ActiveCase({ selection, children }: { selection: CaseSelection; children: ReactNode }) {
+  const { truth, state } = useGame();
+  const pathname = usePathname();
+  const meta = caseMeta(selection);
+  const progress = { found: state.discoveredEvidenceIds.length, total: truth.evidence.length };
+
+  return (
+    <>
+      <SiteHeader caseNumber={meta.number} caseTitle={truth.title} progress={progress} />
+      {pathname === "/" ? (
+        <main>{children}</main>
+      ) : (
+        <div className="mx-auto max-w-7xl px-4 md:px-8 py-6 lg:py-10 grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12">
+          <DossierRail caseNumber={meta.number} caseTitle={truth.title} />
+          <main className="min-w-0">{children}</main>
+        </div>
+      )}
+    </>
   );
 }

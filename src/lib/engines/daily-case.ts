@@ -49,3 +49,13 @@ export function formatDailyShareText(breakdown: ScoreBreakdown, date: Date, dayN
   const grid = CATEGORY_ORDER.map((c) => squareFor(breakdown, c)).join("");
   return `ColdCase AI #${dayNumber} (${getUtcDateString(date)})\n${grid}  ${breakdown.percentage}%`;
 }
+
+/** Day one of the published daily series; case numbers count from here. */
+export const DAILY_LAUNCH_DATE = new Date("2026-11-01T00:00:00Z");
+
+/** "004"-style case number for a daily date seed ("YYYY-MM-DD"), or null for non-daily cases. */
+export function dailyCaseNumber(seed: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(seed)) return null;
+  const n = getDailyDayNumber(new Date(`${seed}T00:00:00Z`), DAILY_LAUNCH_DATE);
+  return n > 0 ? String(n).padStart(3, "0") : null;
+}
