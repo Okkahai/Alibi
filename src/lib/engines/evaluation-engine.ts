@@ -14,7 +14,7 @@ export interface ScoreBreakdown {
   location?: { correct: boolean; points: number };
   keyEvidence: { matched: string[]; missed: string[]; extra: string[]; points: number };
   timeline: { matched: string[]; missed: string[]; points: number };
-  /** Hints cost a little, never the solve itself: 3 points each, at most 15. */
+  /** Hints cost a little, never the verdict: 3 points each (uncapped, so hints cannot become a free oracle). */
   hints: { used: number; points: number };
   totalPoints: number;
   maxPoints: number;
@@ -69,7 +69,7 @@ export function evaluateAccusation(truth: CaseTruth, accusation: Accusation): Sc
   const timelinePoints = Math.round(timelineRatio * WEIGHTS.timeline);
 
   const hintsUsed = accusation.hintsUsed ?? 0;
-  const hintPoints = -Math.min(hintsUsed * 3, 15);
+  const hintPoints = -hintsUsed * 3;
   const totalPoints = Math.max(0, culpritPoints + motivePoints + methodPoints + locationPoints + keyEvidencePoints + timelinePoints + hintPoints);
   const maxPoints = WEIGHTS.culprit + WEIGHTS.motive + WEIGHTS.method + (gradesLocation ? WEIGHTS.location : 0) + WEIGHTS.keyEvidence + WEIGHTS.timeline;
 

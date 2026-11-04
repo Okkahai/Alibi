@@ -45,7 +45,7 @@ describe("evaluateAccusation", () => {
     expect(score.keyEvidence.points).toBeLessThan(20);
   });
 
-  it("charges 3 points per hint, capped at 15, without touching the verdict", () => {
+  it("charges 3 points per hint without touching the verdict", () => {
     const base = {
       culpritId: theVossManorCase.solution.culpritId,
       motive: theVossManorCase.solution.motive,
@@ -57,7 +57,7 @@ describe("evaluateAccusation", () => {
     const two = evaluateAccusation(theVossManorCase, { ...base, hintsUsed: 2 });
     expect(two.totalPoints).toBe(two.maxPoints - 6);
     const many = evaluateAccusation(theVossManorCase, { ...base, hintsUsed: 9 });
-    expect(many.hints.points).toBe(-15);
+    expect(many.hints.points).toBe(-27);
     expect(many.culprit.correct).toBe(true);
   });
 });

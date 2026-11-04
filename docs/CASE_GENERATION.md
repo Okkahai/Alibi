@@ -109,3 +109,17 @@ Across 1,000 generated puzzles, every elimination needed only one clue (about 10
 Each hint shown costs 3 points on the finding, up to 15. The verdict itself is never changed.
 
 The reveal lists the full trace under "How the exhibits decide it". Daily cases also get a share block that names no person, method or room.
+
+### QA fixes (2026-11-04)
+
+- **Clue text now matches the solver exactly.**
+  - A "linked" clue is rendered as an *if-and-only-if* that names both values. Before, "Whoever did it used X" asserted only one direction, and in 11 of 120 dailies the text alone left two culprits possible.
+  - A "not-linked" clue is rendered as "not both".
+  - `NOT_LINKED_TEMPLATES` in `narrative-generator.ts` covers these, and every template must keep this exact meaning.
+- **The liar is the killer.** This is now a standing rule enforced in `solver.ts`. The homepage briefing and the matrix intro tell the player. Clue pairs between culprit and false alibi are no longer generated, because under the rule they say nothing.
+- **Hints only use exhibits the player has examined.**
+  - A hint flags a contradicting mark only when the examined exhibits already prove it.
+  - A step whose exhibit is still unexamined stays at level 1, and the hint names no room. This stops hints acting as an oracle or leaking a room.
+  - Hints cost 3 points each, with no cap.
+- **Year-long check.** `__tests__/daily-window.test.ts` generates 365 dailies from launch and checks that the clue-only trace confirms the true culprit and room.
+- **Difficulty is still low.** Every elimination needs only one exhibit, about 12 per case. A harder clue selection is planned for the content phase.

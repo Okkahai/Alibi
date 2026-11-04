@@ -43,11 +43,17 @@ export function nextHint(truth: CaseTruth, cells: Cells, discovered: string[], s
     // Blocks: person×method, person×room, room×method (deduction/page.tsx).
     return k === "person" ? count.method + count.room : k === "method" ? count.person + count.room : count.person + count.method;
   };
-  // A mark that contradicts the exhibits poisons every later step, so it comes first (step -1).
-  const answer = new Map(steps.filter((s) => s.kind === "confirm").map((s) => [`${GRID_KEY[s.axis]}:${s.value}`, true]));
+  // A mark that contradicts what the examined exhibits already prove comes first (step -1).
+  // Only the prefix of the trace whose exhibits are all in hand counts, so this never reveals more than the player holds.
+  const proven = new Set<string>();
+  const eliminated = new Set<string>();
+  for (const s of steps) {
+    if (!s.evidenceIds.every((id) => discovered.includes(id))) break;
+    (s.kind === "confirm" ? proven : eliminated).add(`${GRID_KEY[s.axis]}:${s.value}`);
+  }
   const wrong = Object.entries(cells).find(([k, m]) => {
     const parts = k.split("|");
-    return m === "o" ? parts.some((p) => !answer.has(p)) : parts.every((p) => answer.has(p));
+    return m === "o" ? parts.some((p) => eliminated.has(p)) : parts.every((p) => proven.has(p));
   });
   if (wrong) {
     const level = state.last?.step === -1 ? (Math.min(state.last.level + 1, 3) as 1 | 2 | 3) : 1;
@@ -68,9 +74,11 @@ export function nextHint(truth: CaseTruth, cells: Cells, discovered: string[], s
   const index = steps.findIndex((s) => !reflected(s, cells, slotsFor(s.axis)));
   if (index === -1) return { state, text: "Your grid already records every deduction the exhibits allow. Proceed to the conclusion." };
 
-  const level = state.last?.step === index ? (Math.min(state.last.level + 1, 3) as 1 | 2 | 3) : 1;
-  const repeat = state.last?.step === index && state.last.level === level;
   const step = steps[index];
+  const unseen = step.evidenceIds.filter((id) => !discovered.includes(id));
+  // Until its exhibits are examined a step stays at level 1: naming an unseen exhibit would quote it.
+  const level = state.last?.step === index && !unseen.length ? (Math.min(state.last.level + 1, 3) as 1 | 2 | 3) : 1;
+  const repeat = state.last?.step === index && state.last.level === level;
   const name =
     step.axis === "culprit"
       ? truth.characters.find((c) => c.id === step.value)?.name
@@ -79,8 +87,6 @@ export function nextHint(truth: CaseTruth, cells: Cells, discovered: string[], s
         : truth.locations.find((l) => l.id === step.value)?.name;
   const exNo = (id: string) => `EX-${String(truth.evidence.findIndex((e) => e.id === id) + 1).padStart(2, "0")}`;
   const exs = step.evidenceIds.map(exNo).join(" with ");
-  const unseen = step.evidenceIds.filter((id) => !discovered.includes(id));
-  const roomOf = (id: string) => truth.locations.find((l) => l.id === truth.evidence.find((e) => e.id === id)?.locationId)?.name;
   const plural = PLURAL[step.axis];
 
   let text: string;
@@ -91,7 +97,8 @@ export function nextHint(truth: CaseTruth, cells: Cells, discovered: string[], s
       `${name} is the only one of the ${plural} left: mark it ✓.`,
     ][level - 1];
   } else if (level === 1) {
-    text = unseen.length ? `A marker you have not examined, in ${roomOf(unseen[0])}, bears on the ${plural}.` : `Read ${exs} against the ${plural}.`;
+    // No room name: an exhibit sits in the room its clue is about, so naming it would give the answer away.
+    text = unseen.length ? `A marker you have not examined yet bears on the ${plural}. Search the scene before asking again.` : `Read ${exs} against the ${plural}.`;
   } else if (level === 2) {
     text = `${exs} ${step.evidenceIds.length > 1 ? "together are" : "on its own is"} enough to rule out one of the ${plural}.`;
   } else {

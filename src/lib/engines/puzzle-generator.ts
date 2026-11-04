@@ -44,10 +44,10 @@ function buildTrueCluePool(
     }
   }
 
+  // No culprit/falseAlibi pairs: the solver's standing rule (the liar is the killer) makes them empty.
   const axisPairs: [Axis, Axis][] = [
     ["culprit", "method"],
     ["culprit", "location"],
-    ["culprit", "falseAlibi"],
     ["method", "location"],
   ];
   for (const [axisA, axisB] of axisPairs) {

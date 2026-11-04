@@ -30,9 +30,19 @@ describe("hints", () => {
     expect(h.state.last?.step).toBeGreaterThan(0);
   });
 
-  it("points to the room of an unexamined exhibit instead of quoting it", () => {
+  it("neither quotes nor locates an unexamined exhibit, and does not escalate past it", () => {
     const h = nextHint(truth, {}, [], EMPTY_HINTS)!;
     expect(h.text).toMatch(/marker you have not examined/);
+    for (const l of truth.locations) expect(h.text).not.toContain(l.name);
+    const again = nextHint(truth, {}, [], h.state)!;
+    expect(again.state.used).toBe(1);
+  });
+
+  it("only calls a mark wrong when the examined exhibits already prove it", () => {
+    const culprit = truth.deduction.find((s) => s.kind === "confirm" && s.axis === "culprit")!.value;
+    const room = truth.deduction.find((s) => s.kind === "confirm" && s.axis === "location")!.value;
+    const cells = { [cellKey("person", culprit, "room", room)]: "x" as const };
+    expect(nextHint(truth, cells, [], EMPTY_HINTS)!.text).not.toMatch(/contradicts/);
   });
 
   it("flags a mark that contradicts the exhibits before anything else", () => {

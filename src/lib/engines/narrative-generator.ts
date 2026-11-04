@@ -76,26 +76,27 @@ const IS_TEMPLATES: Record<Axis, Array<(name: string) => string>> = {
   falseAlibi: [(n) => `${capitalize(AXIS_NOUN.falseAlibi)} is ${n}.`],
 };
 
+// Each template must say exactly what the solver's clue means (solver.ts):
+// linked = "A is part of the answer if and only if B is"; not-linked = "not both".
 const LINKED_TEMPLATES: Record<string, Array<(a: string, b: string) => string>> = {
   "culprit:method": [
-    (_a, b) => `Whoever did it used ${b}.`,
-    (_a, b) => `The killer's weapon was ${b}.`,
-    (_a, b) => `Trace evidence ties the killer to ${b}.`,
+    (a, b) => `Either ${a} is the killer and ${b} the method, or neither is.`,
+    (a, b) => `If ${b} was the method, ${a} is the killer; and if ${a} is the killer, the method was ${b}.`,
   ],
   "culprit:location": [
-    (_a, b) => `Whoever did it was at ${b} that night.`,
-    (_a, b) => `The killer was present at ${b}.`,
-    (_a, b) => `Security records place the killer at ${b}.`,
-  ],
-  "culprit:falseAlibi": [
-    () => `The culprit is the one whose story doesn't hold up.`,
-    () => `Whoever is lying about their alibi is the killer.`,
+    (a, b) => `Either ${a} is the killer and ${b} the scene, or neither is.`,
+    (a, b) => `If the killing happened at ${b}, ${a} did it; and if ${a} did it, it happened at ${b}.`,
   ],
   "method:location": [
-    (a, b) => `${capitalize(a)} was used at ${b}.`,
-    (a, b) => `The scene at ${b} is consistent with ${a}.`,
-    (a, b) => `Forensic residue of ${a} was found at ${b}.`,
+    (a, b) => `Either ${a} was used and ${b} is the scene, or neither is.`,
+    (a, b) => `If ${a} was used, it was at ${b}; and whatever happened at ${b} was done with ${a}.`,
   ],
+};
+
+const NOT_LINKED_TEMPLATES: Record<string, Array<(a: string, b: string) => string>> = {
+  "culprit:method": [(a, b) => `If ${a} is the killer, the method was not ${b}.`, (a, b) => `${a} did not use ${b}.`],
+  "culprit:location": [(a, b) => `If ${a} is the killer, it did not happen at ${b}.`],
+  "method:location": [(a, b) => `${capitalize(a)} was not used at ${b}.`, (a, b) => `Whatever happened at ${b}, it was not ${a}.`],
 };
 
 const CONDITIONAL_TEMPLATES: Array<(ifNoun: string, ifName: string, thenNoun: string, thenName: string, negated: boolean) => string> = [
@@ -170,10 +171,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       case "not-linked": {
         const nameA = nameOf(clue.axisA, clue.valueA);
         const nameB = nameOf(clue.axisB, clue.valueB);
-        const positive = names.pick(LINKED_TEMPLATES[`${clue.axisA}:${clue.axisB}`])(nameA, nameB);
-        // The culprit:falseAlibi templates ignore the names, so negating them would deny the always-true rule; name the cleared alibi instead.
-        const negative = `${clue.axisA}:${clue.axisB}` === "culprit:falseAlibi" ? `${nameB}'s story is not the one that breaks.` : `It is not true that ${lowercaseFirst(positive)}`;
-        const text = clue.kind === "linked" ? positive : negative;
+        const templates = clue.kind === "linked" ? LINKED_TEMPLATES : NOT_LINKED_TEMPLATES;
+        const text = names.pick(templates[`${clue.axisA}:${clue.axisB}`])(nameA, nameB);
         return {
           text,
           events: dedupe([eventFor(clue.axisA, clue.valueA), eventFor(clue.axisB, clue.valueB)]),
@@ -387,6 +386,3 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function lowercaseFirst(s: string): string {
-  return s.charAt(0).toLowerCase() + s.slice(1);
-}

@@ -163,7 +163,7 @@ export default function DeductionPage() {
           <h1 className="mt-2 text-[3rem] md:text-[3.6rem] italic font-medium leading-none">The matrix</h1>
         </div>
         <p className="md:ml-auto md:max-w-[26rem] text-sm text-[var(--muted)]">
-          One person did it, by one method, in one room. Each block asks whether that pairing could be the crime: mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z.
+          One person did it, by one method, in one room, and that person is the one whose alibi breaks. Each block asks whether that pairing could be the crime: mark what the exhibits rule out (✕) and what they prove (✓). Click a cell to cycle; keys: arrows, X, V, Delete, Ctrl+Z.
         </p>
       </header>
 
@@ -274,7 +274,7 @@ export default function DeductionPage() {
             <div className="mb-8">
               <h2 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Consulting detective</h2>
               <p className="mt-3 text-sm text-[var(--muted)]">
-                Stuck? Each request goes one step further: where to look, what it shows, then the mark to make. Each costs 3 points on the finding (at most 15).
+                Stuck? Each request goes one step further: where to look, what it shows, then the mark to make. Each costs 3 points on the finding.
               </p>
               <div aria-live="polite">
                 {hintText && <p className="mt-3 display text-xl italic border-l-2 border-[var(--accent)] pl-3">{hintText}</p>}
