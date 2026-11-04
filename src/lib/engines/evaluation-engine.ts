@@ -14,6 +14,8 @@ export interface ScoreBreakdown {
   location?: { correct: boolean; points: number };
   keyEvidence: { matched: string[]; missed: string[]; extra: string[]; points: number };
   timeline: { matched: string[]; missed: string[]; points: number };
+  /** Hints cost a little, never the solve itself: 3 points each, at most 15. */
+  hints: { used: number; points: number };
   totalPoints: number;
   maxPoints: number;
   percentage: number;
@@ -66,7 +68,9 @@ export function evaluateAccusation(truth: CaseTruth, accusation: Accusation): Sc
   const keyEvidencePoints = Math.round(evidenceRatio * WEIGHTS.keyEvidence);
   const timelinePoints = Math.round(timelineRatio * WEIGHTS.timeline);
 
-  const totalPoints = culpritPoints + motivePoints + methodPoints + locationPoints + keyEvidencePoints + timelinePoints;
+  const hintsUsed = accusation.hintsUsed ?? 0;
+  const hintPoints = -Math.min(hintsUsed * 3, 15);
+  const totalPoints = Math.max(0, culpritPoints + motivePoints + methodPoints + locationPoints + keyEvidencePoints + timelinePoints + hintPoints);
   const maxPoints = WEIGHTS.culprit + WEIGHTS.motive + WEIGHTS.method + (gradesLocation ? WEIGHTS.location : 0) + WEIGHTS.keyEvidence + WEIGHTS.timeline;
 
   return {
@@ -76,6 +80,7 @@ export function evaluateAccusation(truth: CaseTruth, accusation: Accusation): Sc
     ...(gradesLocation && { location: { correct: locationCorrect, points: locationPoints } }),
     keyEvidence: { matched: matchedEvidence, missed: missedEvidence, extra: extraEvidence, points: keyEvidencePoints },
     timeline: { matched: matchedTimeline, missed: missedTimeline, points: timelinePoints },
+    hints: { used: hintsUsed, points: hintPoints },
     totalPoints,
     maxPoints,
     percentage: Math.round((totalPoints / maxPoints) * 100),

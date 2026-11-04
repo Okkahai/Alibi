@@ -4,19 +4,12 @@ import { useState } from "react";
 import { useGame } from "@/lib/state/game-context";
 import { knownEvents } from "@/lib/state/known-events";
 import { Portrait } from "@/components/art/portrait";
+import type { ScoreBreakdown } from "@/lib/engines/evaluation-engine";
+import { DAILY_LAUNCH_DATE, dailyCaseNumber, formatDailyShareText, getDailyDayNumber } from "@/lib/engines/daily-case";
+import { loadHints } from "@/lib/state/hints";
 
 interface ScoreResponse {
-  score: {
-    culprit: { correct: boolean; points: number };
-    motive: { correct: boolean; points: number };
-    method: { correct: boolean; points: number };
-    location?: { correct: boolean; points: number };
-    keyEvidence: { matched: string[]; missed: string[]; extra: string[]; points: number };
-    timeline: { matched: string[]; missed: string[]; points: number };
-    totalPoints: number;
-    maxPoints: number;
-    percentage: number;
-  };
+  score: ScoreBreakdown;
   reveal: {
     culpritName: string;
     motive: string;
@@ -42,6 +35,7 @@ export default function AccusationPage() {
   const [result, setResult] = useState<ScoreResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   function toggle(list: string[], id: string, setter: (v: string[]) => void) {
     setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -50,7 +44,7 @@ export default function AccusationPage() {
   async function submit() {
     if (!culpritId || submitting) return;
     setSubmitting(true);
-    const accusation = { culpritId, motive, method, locationId: locationId || undefined, keyEvidenceIds, reconstructedTimelineEventIds: timelineEventIds };
+    const accusation = { culpritId, motive, method, locationId: locationId || undefined, hintsUsed: loadHints(truth.id).used, keyEvidenceIds, reconstructedTimelineEventIds: timelineEventIds };
     try {
       const res = await fetch("/api/accusation", {
         method: "POST",
@@ -67,6 +61,12 @@ export default function AccusationPage() {
 
   if (result) {
     const timeline = [...result.reveal.fullTimeline].sort((a, b) => a.time.localeCompare(b.time));
+    const share = dailyCaseNumber(truth.seed)
+      ? formatDailyShareText(result.score, new Date(`${truth.seed}T00:00:00Z`), getDailyDayNumber(new Date(`${truth.seed}T00:00:00Z`), DAILY_LAUNCH_DATE))
+      : null;
+    const exNo = (id: string) => `EX-${String(truth.evidence.findIndex((e) => e.id === id) + 1).padStart(2, "0")}`;
+    const nameOf = (axis: string, id: string) =>
+      axis === "culprit" ? truth.characters.find((c) => c.id === id)?.name : axis === "method" ? truth.methods.find((m) => m.id === id)?.name : truth.locations.find((l) => l.id === id)?.name;
     return (
       <article>
         <header className="on-ink px-5 md:px-8 py-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end relative overflow-hidden">
@@ -83,13 +83,14 @@ export default function AccusationPage() {
           </p>
         </header>
 
-        <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 border-b-2 border-[var(--rule-strong)]">
+        <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-none lg:grid-flow-col lg:auto-cols-fr border-b-2 border-[var(--rule-strong)]">
           <Score label="Culprit" points={result.score.culprit.points} correct={result.score.culprit.correct} />
           <Score label="Motive" points={result.score.motive.points} correct={result.score.motive.correct} />
           <Score label="Method" points={result.score.method.points} correct={result.score.method.correct} />
           {result.score.location && <Score label="Room" points={result.score.location.points} correct={result.score.location.correct} />}
           <Score label="Exhibits" points={result.score.keyEvidence.points} correct={result.score.keyEvidence.missed.length === 0} />
           <Score label="Sequence" points={result.score.timeline.points} correct={result.score.timeline.missed.length === 0} />
+          {result.score.hints.used > 0 && <Score label={`Hints · ${result.score.hints.used}`} points={result.score.hints.points} correct={false} />}
         </dl>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
@@ -111,9 +112,42 @@ export default function AccusationPage() {
                 </li>
               ))}
             </ol>
+            {truth.deduction.length > 0 && (
+              <>
+                <h2 className="mt-10 text-[2rem] border-b-2 border-[var(--rule-strong)] pb-2">How the exhibits decide it</h2>
+                <ol className="mt-2">
+                  {truth.deduction.map((s, i) => (
+                    <li key={i} className={`grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3 py-2 border-b border-[var(--border)] ${s.kind === "confirm" ? "font-semibold" : ""}`}>
+                      <span className="mono text-sm text-[var(--copper)]">{s.evidenceIds.map(exNo).join(" ") || "∴"}</span>
+                      <span>
+                        {s.kind === "eliminate" ? `rules out ${nameOf(s.axis, s.value)}.` : `Only ${nameOf(s.axis, s.value)} remains${s.axis === "culprit" ? " among the persons" : s.axis === "method" ? " among the methods" : " among the rooms"}.`}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
           </section>
 
           <section>
+            {share && (
+              <div className="mb-10">
+                <h2 className="text-[2rem] border-b-2 border-[var(--rule-strong)] pb-2">For the record</h2>
+                <pre className="mono text-sm whitespace-pre-wrap py-3 border-b border-[var(--border)]">{share}</pre>
+                <button
+                  className="btn mt-3"
+                  onClick={() =>
+                    navigator.clipboard?.writeText(share).then(
+                      () => setCopied(true),
+                      () => setCopied(false)
+                    )
+                  }
+                >
+                  {copied ? "Copied ✓" : "Copy result"}
+                </button>
+                <p className="mt-2 text-sm text-[var(--muted)]">Names no one and nothing: safe to share before others have solved it.</p>
+              </div>
+            )}
             <h2 className="text-[2rem] border-b-2 border-[var(--rule-strong)] pb-2">False statements</h2>
             <ul>
               {result.reveal.allLies.map((lie, i) => (

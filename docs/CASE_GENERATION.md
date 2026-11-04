@@ -92,3 +92,20 @@ The current rules:
 `__tests__/crime-room-leak.test.ts` checks this over 300 seeds.
 
 Daily cases from 2026-11-01 to 2026-11-04 render differently after this change. Their puzzles (clues and solution) are the same, because only the narrative layer changed. No snapshots had been published yet.
+
+## Deduction trace, hints and the reveal (2026-11-04)
+
+`deduction-trace.ts` replays a case using only its clues. It reads the game's stated rule ("the one lying about their alibi is the killer") as falseAlibi = culprit. At each step it takes the smallest group of clues that rules out a value, trying single clues first, then pairs, then all clues together. When an axis is down to one value, the trace confirms it.
+
+Across 1,000 generated puzzles, every elimination needed only one clue (about 10 eliminations per case). The trace is stored on `CaseTruth.deduction` as exhibit ids. A handcrafted case leaves it empty, and that disables hints for that case.
+
+`src/lib/state/hints.ts` walks the trace against the player's own grid:
+
+- **Contradicting marks first.** A mark that contradicts the exhibits is flagged before anything else.
+- **Next step.** Otherwise the hint covers the first step the grid does not yet record.
+- **Escalation.** Each further request on the same step escalates: direction, then deduction, then the exact mark.
+- **Unexamined exhibits.** If the exhibit has not been examined yet, the hint points to its room instead of quoting it.
+
+Each hint shown costs 3 points on the finding, up to 15. The verdict itself is never changed.
+
+The reveal lists the full trace under "How the exhibits decide it". Daily cases also get a share block that names no person, method or room.

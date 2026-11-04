@@ -48,8 +48,9 @@ describe("daily-case", () => {
       reconstructedTimelineEventIds: [],
     });
     const text = formatDailyShareText(breakdown, new Date("2026-09-29T00:00:00Z"), 1);
-    expect(text).toContain("ColdCase AI #1 (2026-09-29)");
-    expect(text).toMatch(/^[🟩🟨⬛]{5}/m);
+    expect(text).toContain("ALIBI · Case Nº 001 · 2026-09-29");
+    expect(text).toMatch(/Culprit ✓ {2}Method ✓ {2}Room ✗/);
+    expect(text).toContain("No hints");
     expect(text).not.toContain(truth.characters[0].name);
   });
 });

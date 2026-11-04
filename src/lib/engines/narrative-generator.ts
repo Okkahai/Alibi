@@ -11,6 +11,7 @@
 import type { Axis, Clue } from "@/lib/schema/puzzle-case";
 import type { CaseTruth, Character, Evidence, TimelineEvent, Difficulty } from "@/lib/schema/case-truth";
 import { CaseTruthSchema } from "@/lib/schema/case-truth";
+import { buildDeductionTrace } from "@/lib/engines/deduction-trace";
 import { generatePuzzleCase } from "./puzzle-generator";
 import { validateCaseTruth } from "./case-validators";
 import { solve } from "./solver";
@@ -336,6 +337,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
     timeline,
     evidence,
     methods: puzzle.methods.map((id) => ({ id, name: methodName.get(id)! })),
+    deduction: buildDeductionTrace(puzzle).map(({ clues, ...step }) => ({ ...step, evidenceIds: clues.map((i) => evidence[i].id) })),
     contradictions: [
       {
         id: "contra_culprit_alibi",

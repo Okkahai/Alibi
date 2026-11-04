@@ -147,6 +147,17 @@ export const CaseTruthSchema = z.object({
   contradictions: z.array(ContradictionSchema).default([]),
   /** The method axis of the deduction matrix (generated cases); handcrafted cases may leave it empty. */
   methods: z.array(z.object({ id: z.string(), name: z.string() })).default([]),
+  /** Clue-only elimination order (deduction-trace.ts) behind the hint system; empty for handcrafted cases. */
+  deduction: z
+    .array(
+      z.object({
+        kind: z.enum(["eliminate", "confirm"]),
+        axis: z.enum(["culprit", "method", "location"]),
+        value: z.string(),
+        evidenceIds: z.array(z.string()),
+      })
+    )
+    .default([]),
   solution: SolutionSchema,
 });
 export type CaseTruth = z.infer<typeof CaseTruthSchema>;

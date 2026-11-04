@@ -565,6 +565,7 @@ const theVossManorCaseData: CaseTruth = {
 
   // Handcrafted: not solver-built, so the deduction matrix shows only persons × rooms.
   methods: [],
+  deduction: [],
   contradictions: [
     {
       id: "contra_marcus_location",
