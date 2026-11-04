@@ -155,7 +155,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
 
   function eventFor(axis: Axis, value: string): string {
     if (axis === "culprit" || axis === "falseAlibi") {
-      return value === culpritId ? "evt_crime" : `evt_alibi_${value}`;
+      // v2: every named suspect, the culprit included, unlocks their own whereabouts, so a missing entry is no tell.
+      return value === culpritId && !v2 ? "evt_crime" : `evt_alibi_${value}`;
     }
     return "evt_crime";
   }
@@ -321,6 +322,20 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
         isTrue: true,
       })
     ),
+    // v2: the culprit's earlier whereabouts, worded like everyone else's. True (their lie is "the entire
+    // evening"), and not tagged with the culprit so knownEvents does not redact it into a tell.
+    ...(v2
+      ? [
+          {
+            id: `evt_alibi_${culpritId}`,
+            time: `2${names.int(2)}:${names.pick(["00", "15", "30", "45"])}`,
+            description: `${suspectName.get(culpritId)} was at ${locationName.get(culpritFakeAlibiLocation)} earlier in the evening.`,
+            locationId: culpritFakeAlibiLocation,
+            involvedCharacterIds: [],
+            isTrue: true,
+          } satisfies TimelineEvent,
+        ]
+      : []),
     {
       id: "evt_body_found",
       time: "23:30",

@@ -42,11 +42,12 @@ export function buildDeductionTrace(puzzle: SolvablePuzzle): TraceStep[] {
     domains.culprit.flatMap((culprit) => domains.method.flatMap((method) => domains.location.map((location) => ({ culprit, method, location }))));
   const confirmed = new Set<TraceAxis>();
 
-  // Smallest group of clues first: one clue alone, then pairs, then everything together.
-  const groups = (): number[][] => {
-    const idx = puzzle.clues.map((_, i) => i);
-    return [...idx.map((i) => [i]), ...idx.flatMap((i) => idx.filter((j) => j > i).map((j) => [i, j])), idx];
-  };
+  // Smallest group of clues first: one clue alone, then pairs, then triples, then everything together.
+  const idx = puzzle.clues.map((_, i) => i);
+  const pairs = idx.flatMap((i) => idx.filter((j) => j > i).map((j) => [i, j]));
+  const triples = pairs.flatMap(([i, j]) => idx.filter((k) => k > j).map((k) => [i, j, k]));
+  const allGroups = [...idx.map((i) => [i]), ...pairs, ...triples, idx];
+  const groups = () => allGroups;
 
   for (;;) {
     for (const axis of AXES) {

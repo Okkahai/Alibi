@@ -11,6 +11,7 @@
 import type { Axis, Clue, PuzzleCase, PuzzleSolution } from "@/lib/schema/puzzle-case";
 import { solve } from "./solver";
 import { createRng } from "./prng";
+import { buildDeductionTrace } from "./deduction-trace";
 
 export interface GeneratePuzzleCaseOptions {
   seed: string;
@@ -99,8 +100,9 @@ function buildFullTruePool(solution: PuzzleSolution, suspects: string[], methods
 
 /**
  * The "who gets named" shortcut: if the if/either/not-both exhibits mention
- * only the answer, or every option but the answer, a player can read it off
- * without deducing anything.
+ * only the answer, or every option but the answer — or the exhibits as a whole
+ * mention every option but the answer — a player can read it off without
+ * deducing anything.
  */
 export function namesGiveAnswerAway({ suspects, methods, locations, clues, solution }: PuzzleCase): boolean {
   const named: Record<string, Set<string>> = { culprit: new Set(), method: new Set(), location: new Set() };
@@ -116,8 +118,13 @@ export function namesGiveAnswerAway({ suspects, methods, locations, clues, solut
   }
   const answer: Record<string, string> = { culprit: solution.culprit, method: solution.method, location: solution.location };
   const size: Record<string, number> = { culprit: suspects.length, method: methods.length, location: locations.length };
-  return Object.keys(named).some((axis) =>
-    named[axis].has(answer[axis]) ? named[axis].size === 1 : named[axis].size === size[axis] - 1
+  // Counting "not" exhibits too: the one option no exhibit ever mentions (e.g. the one suspect with no Chronology entry).
+  const mentioned: Record<string, Set<string>> = { culprit: new Set(named.culprit), method: new Set(named.method), location: new Set(named.location) };
+  for (const c of clues) if (c.kind === "not" || c.kind === "is") mentioned[c.axis === "falseAlibi" ? "culprit" : c.axis].add(c.value);
+  return Object.keys(named).some(
+    (axis) =>
+      (named[axis].has(answer[axis]) ? named[axis].size === 1 : named[axis].size === size[axis] - 1) ||
+      (!mentioned[axis].has(answer[axis]) && mentioned[axis].size === size[axis] - 1)
   );
 }
 
@@ -178,7 +185,7 @@ function generateMinimal(
   const pool = buildFullTruePool(solution, suspects, methods, locations);
   const isUnique = (clues: Clue[]) => solve({ suspects, methods, locations, clues }).isUnique;
   let clues: Clue[] = [];
-  for (let attempt = 0; attempt < 50; attempt++) {
+  for (let attempt = 0; attempt < 400; attempt++) {
     clues = [];
     for (const clue of rng.sample(pool, pool.length)) {
       clues.push(clue);
@@ -189,11 +196,14 @@ function generateMinimal(
       const without = clues.filter((c) => c !== clue);
       if (isUnique(without)) clues = without;
     }
-    if (!namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) break;
+    if (namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) continue;
+    // Redraw sets whose deduction needs more than three exhibits at once: no hint could explain that step.
+    if (buildDeductionTrace({ suspects, methods, locations, clues }).every((step) => step.clues.length <= 3)) break;
   }
   const result = solve({ suspects, methods, locations, clues });
   if (!result.isUnique || JSON.stringify(result.solutions[0]) !== JSON.stringify(solution) || namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) {
     throw new Error(`generatePuzzleCase: seed "${seed}" found no fair minimal clue set.`);
   }
-  return { suspects, methods, locations, clues, solution };
+  // Shuffle the exhibit order: otherwise the last exhibit is the one that made the answer unique.
+  return { suspects, methods, locations, clues: rng.sample(clues, clues.length), solution };
 }

@@ -133,7 +133,9 @@ Rules v2 (`RULES_V2_FROM` in `narrative-generator.ts`, `generateMinimal` in `puz
 - **No forced anchors and no `is` clues.** No exhibit states an answer outright.
 - **Decoys.** The clue pool holds every true clue, including if/either/not-both clues about wrong values. For example, "if Bram did it, it was the cellar" is true whenever Bram is innocent. Without these, being named in such an exhibit meant being the answer (QA found this in 97–100% of cases).
 - **Pruning.** After the set first becomes unique, each clue is tried for removal in seeded order. It is dropped if the answer stays unique, so every exhibit is needed. Typical counts: easy 5–8, medium 7–15, hard 9–21. Many steps now need two or more exhibits together.
-- **Shortcut check.** `namesGiveAnswerAway` rejects a set, and the generator redraws it, if the if/either exhibits name only the answer, or every option except the answer, on any axis.
+- **Shortcut check.** `namesGiveAnswerAway` rejects a set, and the generator redraws it, in two cases. The first is when the if/either exhibits name only the answer, or every option except the answer, on any axis. The second is when the exhibits as a whole mention every option except the answer, which would make it the one suspect with no Chronology entry.
+- **Explainable steps.** A set is redrawn if some deduction step needs more than three exhibits at once. The trace tries single exhibits, then pairs, then triples. The exhibit order is shuffled, so the last exhibit is not the one that made the answer unique.
+- **Chronology.** Every suspect, the culprit included, has an "earlier in the evening" whereabouts entry, unlocked by any exhibit that names them. The culprit's entry is true: their lie is "the entire evening".
 
 Names are also drawn separately for first and last names, so no two people in a case share either one.
 
@@ -141,7 +143,8 @@ Key exhibits are the ones the deduction trace uses to settle the culprit, and th
 
 Known v2 limits:
 
-- About a quarter of innocents' whereabouts are never unlocked in the Chronology.
+- Mild statistical tells remain. The room or method named most often in "then" slots is the answer about 1.5–1.7× more often than chance (about 40% against 25%).
+- Room names have no article ("happened at Billiard Room").
 - A few "not" templates ("no signs of a struggle") read loosely beside poison or smoke.
 - "Exhibits relied upon" does not penalise ticking extras.
 
