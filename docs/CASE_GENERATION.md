@@ -70,3 +70,25 @@ For a solved `PuzzleCase { suspects, methods, locations, clues, solution }`:
   mistaken identification, …) are additional *rendering* choices for the
   same clue kinds, not new solver concepts — tracked as a follow-up to
   this phase, before the UI/visual-identity work.
+
+## Answer fields stay hidden in presentation (2026-11-04)
+
+The crime room is something the player must deduce, so nothing rendered before the reveal may single it out. Before this fix, five things gave it away:
+
+- the case title;
+- the victim note;
+- a separate name pool for crime rooms;
+- exhibits piling up in the crime room;
+- innocents' whereabouts covering every other room.
+
+The current rules:
+
+- **Room names.** Rooms draw names from one pool (`LOCATION_NAMES`) and descriptions from one neutral pool.
+- **Title.** The title uses the victim's surname.
+- **Victim note.** It says the body was moved.
+- **Exhibit placement.** An exhibit sits in the room its clue names. If the clue names no room, the exhibit goes in a seeded random room.
+- **Innocent whereabouts.** These are "earlier in the evening", and any room is allowed, the crime room included.
+
+`__tests__/crime-room-leak.test.ts` checks this over 300 seeds.
+
+Daily cases from 2026-11-01 to 2026-11-04 render differently after this change. Their puzzles (clues and solution) are the same, because only the narrative layer changed. No snapshots had been published yet.
