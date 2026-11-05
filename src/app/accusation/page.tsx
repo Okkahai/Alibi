@@ -5,8 +5,9 @@ import { useGame } from "@/lib/state/game-context";
 import { knownEvents } from "@/lib/state/known-events";
 import { Portrait } from "@/components/art/portrait";
 import type { ScoreBreakdown } from "@/lib/engines/evaluation-engine";
-import { DAILY_LAUNCH_DATE, dailyCaseNumber, formatDailyShareText, getDailyDayNumber } from "@/lib/engines/daily-case";
+import { DAILY_LAUNCH_DATE, dailyCaseNumber, formatDailyShareText, getDailyDayNumber, getUtcDateString } from "@/lib/engines/daily-case";
 import { loadHints } from "@/lib/state/hints";
+import { recordResult } from "@/lib/state/results";
 
 interface ScoreResponse {
   score: ScoreBreakdown;
@@ -54,6 +55,9 @@ export default function AccusationPage() {
       const data: ScoreResponse = await res.json();
       setResult(data);
       submitAccusation(accusation);
+      if (dailyCaseNumber(truth.seed)) {
+        recordResult(truth.seed, { percentage: data.score.percentage, culpritCorrect: data.score.culprit.correct, playedOn: getUtcDateString() });
+      }
     } finally {
       setSubmitting(false);
     }
