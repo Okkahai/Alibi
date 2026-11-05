@@ -22,13 +22,13 @@ Each exhibit is a statement that is true. The wording means exactly one logical 
 
 An exhibit about an innocent person is still true. "If Bram did it, it was the cellar" is true whenever Bram is innocent. Being named in an exhibit says nothing by itself.
 
-Every daily has **exactly one** answer reachable from the exhibits alone. A solver checks this before the case can be published, and no exhibit is redundant.
+Every daily has **exactly one** answer reachable from the exhibits alone. A solver checks this before the case can be published. From 2026-11-06 (and in every practice file) no exhibit is redundant either; earlier dailies keep their original, looser clue sets.
 
 ## Playing
 
 1. Examine rooms to recover exhibits (Section I).
 2. Mark the deduction matrix (Section VII): ✕ to rule out, ✓ to confirm. A completed grid has exactly one ✓ per block, and the three blocks agree.
-3. Hints (three levels: direction, deduction, the mark itself) only use exhibits you have examined. Each costs 3 points.
+3. Hints (three levels: direction, deduction, the mark itself) reveal only what your examined exhibits prove; for an unexamined one they only say that one bears on it. Each new hint costs 3 points (repeating one is free).
 4. Accuse (Section VIII): culprit, motive, method, room, and the exhibits and events you relied on.
 
 ## Scoring
@@ -44,7 +44,7 @@ Every daily has **exactly one** answer reachable from the exhibits alone. A solv
 | Each hint | −3 |
 
 The total is clamped at 0. The verdict is one of three:
-- **Case closed:** culprit, method and room are all right.
+- **Case closed:** culprit and method are right, and the room too when the case grades one (motive is scored, not required).
 - **Charged, on a flawed account:** the culprit is right, but the method or room is wrong.
 - **Finding overturned:** the culprit is wrong.
 

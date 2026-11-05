@@ -36,9 +36,9 @@ date seed ──► puzzle-generator.ts ──► solver.ts proves one answer
 | `src/app/*` | Next.js App Router pages, one per dossier section; `app-shell.tsx` loads the case. |
 | `src/lib/llm/*`, `api/npc` | Handcrafted-case interrogation only (mock by default, no key needed). |
 
-## Invariants (each one has a test)
+## Invariants
 
-- Every exhibit's text means exactly its solver clue: `rules-v2.test.ts` and the QA English-meaning brute force.
+- Every exhibit's text means exactly its solver clue. This is a template convention, checked by QA's English-meaning brute force (a process, not a repo test).
 - No answer field can be read from presentation (title, room names, exhibit placement, Chronology): `crime-room-leak.test.ts`, `rules-v2.test.ts`.
-- The UI never lists `truth.timeline` wholesale; it goes through `knownEvents()`.
+- Chronology events stay redacted until `knownEvents()` unlocks them (convention; no test).
 - Published dailies never change: `daily-frozen.test.ts`.
