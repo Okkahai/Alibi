@@ -1,5 +1,7 @@
 # 01 — Game Architecture
 
+> Prototype-era design (LLM interrogation, handcrafted cases). For the current daily pipeline see `ARCHITECTURE.md`.
+
 ## The one rule everything else serves
 
 **The AI must not change reality after the case starts.** Every architectural
