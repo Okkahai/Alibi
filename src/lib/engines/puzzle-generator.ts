@@ -92,6 +92,7 @@ function buildFullTruePool(solution: PuzzleSolution, suspects: string[], methods
         if (a === b) pool.push({ kind: "linked", axisA, valueA, axisB, valueB });
         if (!(a && b)) pool.push({ kind: "not-linked", axisA, valueA, axisB, valueB });
         if (!a || b) pool.push({ kind: "conditional", ifAxis: axisA, ifValue: valueA, thenAxis: axisB, thenValue: valueB, thenNegated: false });
+        if (!a || !b) pool.push({ kind: "conditional", ifAxis: axisA, ifValue: valueA, thenAxis: axisB, thenValue: valueB, thenNegated: true });
       }
     }
   }
@@ -126,6 +127,47 @@ export function namesGiveAnswerAway({ suspects, methods, locations, clues, solut
       (named[axis].has(answer[axis]) ? named[axis].size === 1 : named[axis].size === size[axis] - 1) ||
       (!mentioned[axis].has(answer[axis]) && mentioned[axis].size === size[axis] - 1)
   );
+}
+
+/**
+ * Frequency tells: for each axis, whether the answer is the single most-named
+ * option in "then" or "not both" slots, among options no "not" exhibit has
+ * already cleared. Returns how many fire. Damping more slot kinds, or "least
+ * named", was measured to move the tells around rather than shrink them.
+ */
+export function frequencyTells({ suspects, methods, locations, clues, solution }: PuzzleCase): number {
+  const ax = (a: Axis) => (a === "falseAlibi" ? "culprit" : a);
+  const slots = (c: Clue): [string, Axis, string][] =>
+    c.kind === "linked" || c.kind === "not-linked"
+      ? [[c.kind, ax(c.axisA), c.valueA], [c.kind, ax(c.axisB), c.valueB]]
+      : c.kind === "conditional"
+        ? [["if", ax(c.ifAxis), c.ifValue], [c.thenNegated ? "then-not" : "then", ax(c.thenAxis), c.thenValue]]
+        : [];
+  const answer: Record<string, string> = { culprit: solution.culprit, method: solution.method, location: solution.location };
+  const cleared = new Set(clues.flatMap((c) => (c.kind === "not" ? [`${ax(c.axis)}:${c.value}`] : [])));
+  let tells = 0;
+  const domain: Record<string, string[]> = { culprit: suspects, method: methods, location: locations };
+  for (const axis of ["culprit", "method", "location"] as Axis[]) {
+    const open = domain[axis].filter((v) => !cleared.has(`${axis}:${v}`));
+    for (const kind of ["then", "not-linked"]) {
+      // Options never named here count as 0: "the only room any then-slot names" is the strongest tell.
+      const tally = new Map(open.map((v) => [v, 0]));
+      let named = 0;
+      for (const c of clues) {
+        for (const [k, a, v] of slots(c)) {
+          if (k !== kind || a !== axis || !tally.has(v)) continue;
+          tally.set(v, tally.get(v)! + 1);
+          named++;
+        }
+      }
+      if (open.length < 2 || named === 0) continue;
+      const counts = [...tally.values()];
+      const mine = tally.get(answer[axis]) ?? 0;
+      const unique = (n: number) => counts.filter((x) => x === n).length === 1;
+      if (mine === Math.max(...counts) && unique(mine)) tells++;
+    }
+  }
+  return tells;
 }
 
 export function generatePuzzleCase({ seed, suspectCount, minimal = false }: GeneratePuzzleCaseOptions): PuzzleCase {
@@ -197,6 +239,8 @@ function generateMinimal(
       if (isUnique(without)) clues = without;
     }
     if (namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) continue;
+    // Damp frequency tells: redraw 70% of sets where one points at the answer (100% would invert the tell).
+    if (frequencyTells({ suspects, methods, locations, clues, solution }) > 0 && rng.next() < 0.7) continue;
     // Redraw sets whose deduction needs more than three exhibits at once: no hint could explain that step.
     if (buildDeductionTrace({ suspects, methods, locations, clues }).every((step) => step.clues.length <= 3)) break;
   }

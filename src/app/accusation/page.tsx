@@ -65,6 +65,16 @@ export default function AccusationPage() {
       ? formatDailyShareText(result.score, new Date(`${truth.seed}T00:00:00Z`), getDailyDayNumber(new Date(`${truth.seed}T00:00:00Z`), DAILY_LAUNCH_DATE))
       : null;
     const exNo = (id: string) => `EX-${String(truth.evidence.findIndex((e) => e.id === id) + 1).padStart(2, "0")}`;
+    const accused = truth.characters.find((c) => c.id === culpritId)?.name ?? "Your suspect";
+    const fullyRight = result.score.culprit.correct && result.score.method.correct && (result.score.location?.correct ?? true);
+    const verdict = !result.score.culprit.correct
+      ? { title: "Finding overturned", line: <>{accused} walks free once the record is checked. The person responsible was </> }
+      : fullyRight
+        ? { title: "Case closed", line: <>Your finding names the right person{result.score.location ? ", method and room" : " and method"}. The person responsible was </> }
+        : {
+            title: "Charged, on a flawed account",
+            line: <>You named the right person, but your account of how{result.score.location ? " or where" : ""} would not survive the trial. The person responsible was </>,
+          };
     const nameOf = (axis: string, id: string) =>
       axis === "culprit" ? truth.characters.find((c) => c.id === id)?.name : axis === "method" ? truth.methods.find((m) => m.id === id)?.name : truth.locations.find((l) => l.id === id)?.name;
     return (
@@ -72,9 +82,10 @@ export default function AccusationPage() {
         <header className="on-ink px-5 md:px-8 py-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end relative overflow-hidden">
           <div>
             <p className="label text-[var(--brass-light)]">Section VIII · Finding returned</p>
-            <h1 className="mt-2 text-[3rem] md:text-[4rem] italic font-medium text-[var(--on-ink)] leading-none">Case closed</h1>
+            <h1 className="mt-2 text-[3rem] md:text-[4rem] italic font-medium text-[var(--on-ink)] leading-none">{verdict.title}</h1>
             <p className="mt-4 text-[var(--on-ink-muted)] max-w-[34rem]">
-              The person responsible was <span className="text-[var(--on-ink)] display text-2xl italic">{result.reveal.culpritName}</span>.
+              {verdict.line}
+              <span className="text-[var(--on-ink)] display text-2xl italic">{result.reveal.culpritName}</span>.
             </p>
           </div>
           <p className="display text-[6rem] md:text-[8rem] leading-[0.8] text-[var(--brass)]" aria-label={`Score ${result.score.percentage} percent`}>

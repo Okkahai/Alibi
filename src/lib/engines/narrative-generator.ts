@@ -69,6 +69,25 @@ const NOT_TEMPLATES: Record<Axis, Array<(name: string) => string>> = {
   ],
 };
 
+// Rules v2 wording: no template opens with a name (method names are lower-case noun phrases), and
+// none assumes wounds, a struggle or a scene the body never left — methods include poison and smoke.
+const NOT_TEMPLATES_V2: Record<Axis, Array<(name: string) => string>> = {
+  ...NOT_TEMPLATES,
+  method: [
+    (n) => `The coroner rules out ${n} as the cause of death.`,
+    (n) => `Whatever killed the victim, it was not ${n}.`,
+    (n) => `The post-mortem shows ${n} played no part in the death.`,
+  ],
+  location: [
+    (n) => `The killing did not take place at ${n}.`,
+    (n) => `Investigators ruled out ${n} as the scene of the killing.`,
+    (n) => `Whatever happened that night, the killing was not at ${n}.`,
+  ],
+};
+
+/** "The Study" → "the Study", "Kitchen" → "the Kitchen", for room names inside a sentence. */
+const roomInSentence = (name: string) => `the ${name.replace(/^The /, "")}`;
+
 const IS_TEMPLATES: Record<Axis, Array<(name: string) => string>> = {
   culprit: [(n) => `${capitalize(AXIS_NOUN.culprit)} is ${n}.`],
   method: [(n) => `${capitalize(AXIS_NOUN.method)} is ${n}.`],
@@ -139,6 +158,8 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   const roomNames = names.sample(LOCATION_NAMES, puzzle.locations.length);
   const locationName = new Map(puzzle.locations.map((id, i) => [id, roomNames[i]]));
   const crimeLocationName = locationName.get(puzzle.solution.location)!;
+  /** A room's name as it reads inside a sentence; v1 text is frozen as published. */
+  const roomRef = (id: string) => (v2 ? roomInSentence(locationName.get(id)!) : locationName.get(id)!);
 
   const methodNamePool = names.sample(METHOD_NAMES, puzzle.methods.length);
   const methodName = new Map(puzzle.methods.map((id, i) => [id, methodNamePool[i]]));
@@ -151,7 +172,11 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   const culpritFakeAlibiLocation = names.pick(otherLocationIds);
 
   const nameOf = (axis: Axis, value: string) =>
-    axis === "method" ? methodName.get(value)! : axis === "location" ? locationName.get(value)! : suspectName.get(value)!;
+    axis === "method"
+      ? methodName.get(value)!
+      : axis === "location"
+        ? roomRef(value)
+        : suspectName.get(value)!;
 
   function eventFor(axis: Axis, value: string): string {
     if (axis === "culprit" || axis === "falseAlibi") {
@@ -170,7 +195,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       case "not":
       case "is": {
         const name = nameOf(clue.axis, clue.value);
-        const text = names.pick(clue.kind === "not" ? NOT_TEMPLATES[clue.axis] : IS_TEMPLATES[clue.axis])(name);
+        const text = names.pick(clue.kind === "not" ? (v2 ? NOT_TEMPLATES_V2 : NOT_TEMPLATES)[clue.axis] : IS_TEMPLATES[clue.axis])(name);
         return {
           text,
           events: [eventFor(clue.axis, clue.value)],
@@ -258,7 +283,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
         knowledge: [
           {
             id: `know_${id}_crime`,
-            fact: `${name} was alone with ${victimName} at ${crimeLocationName} right before the body was found.`,
+            fact: `${name} was alone with ${victimName} at ${roomRef(puzzle.solution.location)} right before the body was found.`,
             relatedEvents: ["evt_crime"],
             source: "witnessed",
             sensitive: true,
@@ -268,7 +293,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
         lies: [
           {
             id: `lie_${id}_alibi`,
-            falseClaim: `I was at ${locationName.get(culpritFakeAlibiLocation)} the entire evening.`,
+            falseClaim: `I was at ${roomRef(culpritFakeAlibiLocation)} the entire evening.`,
             conceals: "evt_crime",
             brokenBy: keyEvidenceIds,
             fallback: names.pick(FALLBACKS),
@@ -291,7 +316,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       knowledge: [
         {
           id: `know_${id}_alibi`,
-          fact: `${name} spent the early evening at ${locationName.get(alibiLocation)}.`,
+          fact: `${name} spent the early evening at ${roomRef(alibiLocation)}.`,
           relatedEvents: [`evt_alibi_${id}`],
           source: "witnessed",
           sensitive: false,
@@ -307,7 +332,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       id: "evt_crime",
       time: "22:15",
       // Never name the culprit or method here: the event is shown in the Chronology once an exhibit places it.
-      description: `${victimName} was killed at ${crimeLocationName}.`,
+      description: `${victimName} was killed at ${roomRef(puzzle.solution.location)}.`,
       locationId: puzzle.solution.location,
       involvedCharacterIds: [culpritId],
       isTrue: true,
@@ -316,7 +341,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       (id): TimelineEvent => ({
         id: `evt_alibi_${id}`,
         time: `2${names.int(2)}:${names.pick(["00", "15", "30", "45"])}`,
-        description: `${suspectName.get(id)} was at ${locationName.get(alibiLocationFor.get(id)!)} earlier in the evening.`,
+        description: `${suspectName.get(id)} was at ${roomRef(alibiLocationFor.get(id)!)} earlier in the evening.`,
         locationId: alibiLocationFor.get(id)!,
         involvedCharacterIds: [id],
         isTrue: true,
@@ -329,7 +354,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
           {
             id: `evt_alibi_${culpritId}`,
             time: `2${names.int(2)}:${names.pick(["00", "15", "30", "45"])}`,
-            description: `${suspectName.get(culpritId)} was at ${locationName.get(culpritFakeAlibiLocation)} earlier in the evening.`,
+            description: `${suspectName.get(culpritId)} was at ${roomRef(culpritFakeAlibiLocation)} earlier in the evening.`,
             locationId: culpritFakeAlibiLocation,
             involvedCharacterIds: [],
             isTrue: true,
