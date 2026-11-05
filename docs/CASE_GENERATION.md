@@ -137,15 +137,15 @@ Rules v2 (`RULES_V2_FROM` in `narrative-generator.ts`, `generateMinimal` in `puz
 - **Explainable steps.** A set is redrawn if some deduction step needs more than three exhibits at once. The trace tries single exhibits, then pairs, then triples. The exhibit order is shuffled, so the last exhibit is not the one that made the answer unique.
 - **Chronology.** Every suspect, the culprit included, has an "earlier in the evening" whereabouts entry, unlocked by any exhibit that names them. The culprit's entry is true: their lie is "the entire evening".
 
+v2 wording: room names take an article inside sentences ("the Kitchen"). The "not" templates for method and room never assume wounds, a struggle or a crime scene the body never left.
+
 Names are also drawn separately for first and last names, so no two people in a case share either one.
 
 Key exhibits are the ones the deduction trace uses to settle the culprit, and the culprit's contradiction says so ("once the exhibits clear everyone else…"). The old "some exhibit names the culprit" validator rule is waived when the trace confirms the culprit.
 
 Known v2 limits:
 
-- Mild statistical tells remain. The room or method named most often in "then" slots is the answer about 1.5–1.7× more often than chance (about 40% against 25%).
-- Room names have no article ("happened at Billiard Room").
-- A few "not" templates ("no signs of a struggle") read loosely beside poison or smoke.
+- Mild frequency tells remain, the strongest about 1.3× chance (the least-named suspect is the culprit). Earlier the room or method named most often in "then" slots was the answer 1.5–1.7× more often than chance. Two changes brought that down to about 1.2×: negated conditionals in the pool, and `frequencyTells`, which redraws 70% of the sets where that count points at the answer. A hard reject would create the opposite tell.
 - "Exhibits relied upon" does not penalise ticking extras.
 
 Published dailies (2026-11-01 to 11-05) keep v1, and `daily-frozen.test.ts` enforces that.

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { generateCase, RULES_V2_FROM } from "@/lib/engines/narrative-generator";
 import { DAILY_DIFFICULTY } from "@/lib/engines/daily-case";
-import { generatePuzzleCase, namesGiveAnswerAway } from "@/lib/engines/puzzle-generator";
+import { frequencyTells, generatePuzzleCase, namesGiveAnswerAway } from "@/lib/engines/puzzle-generator";
 
 describe("rules v2 (dailies from RULES_V2_FROM, all practice seeds)", () => {
   const cases = Array.from({ length: 60 }, (_, i) => generateCase({ seed: i % 2 ? `practice-${i}` : `2027-02-${String(1 + (i % 28)).padStart(2, "0")}`, difficulty: DAILY_DIFFICULTY }));
@@ -28,6 +28,17 @@ describe("rules v2 (dailies from RULES_V2_FROM, all practice seeds)", () => {
         expect(namesGiveAnswerAway(generatePuzzleCase({ seed: `names-${n}-${i}`, suspectCount: n, minimal: true }))).toBe(false);
       }
     }
+  });
+
+  it("keeps the most-named value in then-slots near chance", () => {
+    // Undamped this ran at 0.17 (the answer led then-slots ~1.6x chance); damped it is ~0.08.
+    let tells = 0;
+    const N = 300;
+    for (let i = 0; i < N; i++) {
+      const p = generatePuzzleCase({ seed: `freq-${i}`, suspectCount: 5, minimal: true });
+      tells += frequencyTells(p.clues, p.solution);
+    }
+    expect(tells / (N * 3)).toBeLessThan(0.12);
   });
 
   it("takes key exhibits from the steps that settle the culprit", () => {

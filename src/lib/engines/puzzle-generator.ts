@@ -92,6 +92,7 @@ function buildFullTruePool(solution: PuzzleSolution, suspects: string[], methods
         if (a === b) pool.push({ kind: "linked", axisA, valueA, axisB, valueB });
         if (!(a && b)) pool.push({ kind: "not-linked", axisA, valueA, axisB, valueB });
         if (!a || b) pool.push({ kind: "conditional", ifAxis: axisA, ifValue: valueA, thenAxis: axisB, thenValue: valueB, thenNegated: false });
+        if (!a || !b) pool.push({ kind: "conditional", ifAxis: axisA, ifValue: valueA, thenAxis: axisB, thenValue: valueB, thenNegated: true });
       }
     }
   }
@@ -126,6 +127,22 @@ export function namesGiveAnswerAway({ suspects, methods, locations, clues, solut
       (named[axis].has(answer[axis]) ? named[axis].size === 1 : named[axis].size === size[axis] - 1) ||
       (!mentioned[axis].has(answer[axis]) && mentioned[axis].size === size[axis] - 1)
   );
+}
+
+/** Count of axes where the answer is the single most-named value in "then" slots (or, for suspects, in not-both slots). */
+export function frequencyTells(clues: Clue[], solution: PuzzleSolution): number {
+  const count = (pick: (c: Clue) => [Axis, string] | null, axis: Axis, answer: string) => {
+    const tally = new Map<string, number>();
+    for (const c of clues) {
+      const hit = pick(c);
+      if (hit && (hit[0] === "falseAlibi" ? "culprit" : hit[0]) === axis) tally.set(hit[1], (tally.get(hit[1]) ?? 0) + 1);
+    }
+    const top = Math.max(0, ...tally.values());
+    return top > 0 && tally.get(answer) === top && [...tally.values()].filter((n) => n === top).length === 1 ? 1 : 0;
+  };
+  const then = (c: Clue): [Axis, string] | null => (c.kind === "conditional" && !c.thenNegated ? [c.thenAxis, c.thenValue] : null);
+  const notBoth = (c: Clue): [Axis, string] | null => (c.kind === "not-linked" && c.axisA === "culprit" ? [c.axisA, c.valueA] : null);
+  return count(then, "method", solution.method) + count(then, "location", solution.location) + count(notBoth, "culprit", solution.culprit);
 }
 
 export function generatePuzzleCase({ seed, suspectCount, minimal = false }: GeneratePuzzleCaseOptions): PuzzleCase {
@@ -197,6 +214,8 @@ function generateMinimal(
       if (isUnique(without)) clues = without;
     }
     if (namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) continue;
+    // Damp frequency tells: a set where a "most-named" count points at the answer is redrawn part of the time.
+    if (frequencyTells(clues, solution) > 0 && rng.next() < 0.7) continue;
     // Redraw sets whose deduction needs more than three exhibits at once: no hint could explain that step.
     if (buildDeductionTrace({ suspects, methods, locations, clues }).every((step) => step.clues.length <= 3)) break;
   }
