@@ -155,6 +155,25 @@ export default function DeductionPage() {
 
   const cellBase = "w-11 h-11 md:w-12 md:h-12 grid place-items-center text-lg";
 
+  // Rendered beside the grid on wide screens and above it on narrow ones, so a hint is never a scroll away.
+  const hintPanel = (
+    <>
+      <h2 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Consulting detective</h2>
+      <p className="mt-3 text-sm text-[var(--muted)] hidden xl:block">
+        Stuck? Each request goes one step further: where to look, what it shows, then the mark to make. Each costs 3 points on the finding.
+      </p>
+      <div aria-live="polite">
+        {hintText && <p className="mt-3 display text-xl italic border-l-2 border-[var(--accent)] pl-3">{hintText}</p>}
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <button className="btn" onClick={askHint}>
+          {hints.last ? "Further hint" : "Ask for a hint"}
+        </button>
+        <span className="label text-[var(--muted)]">{hints.used} used · 3 pts each</span>
+      </div>
+    </>
+  );
+
   return (
     <article>
       <header className="flex flex-col md:flex-row md:items-end gap-3 border-b-2 border-[var(--rule-strong)] pb-4">
@@ -169,6 +188,7 @@ export default function DeductionPage() {
 
       <div className="mt-6 grid gap-8 grid-cols-[minmax(0,1fr)] xl:grid-cols-[minmax(0,auto)_minmax(0,1fr)] items-start">
         <section aria-label="Deduction matrix" className="min-w-0">
+          {truth.deduction.length > 0 && <div className="xl:hidden mb-6">{hintPanel}</div>}
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <button className="btn" onClick={undo} disabled={!history.past.length}>
               Undo
@@ -270,23 +290,7 @@ export default function DeductionPage() {
         </section>
 
         <section aria-label="Exhibits for reference" className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
-          {truth.deduction.length > 0 && (
-            <div className="mb-8">
-              <h2 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Consulting detective</h2>
-              <p className="mt-3 text-sm text-[var(--muted)]">
-                Stuck? Each request goes one step further: where to look, what it shows, then the mark to make. Each costs 3 points on the finding.
-              </p>
-              <div aria-live="polite">
-                {hintText && <p className="mt-3 display text-xl italic border-l-2 border-[var(--accent)] pl-3">{hintText}</p>}
-              </div>
-              <div className="mt-3 flex items-center gap-3">
-                <button className="btn" onClick={askHint}>
-                  {hints.last ? "Further hint" : "Ask for a hint"}
-                </button>
-                <span className="label text-[var(--muted)]">{hints.used} used</span>
-              </div>
-            </div>
-          )}
+          {truth.deduction.length > 0 && <div className="hidden xl:block mb-8">{hintPanel}</div>}
           <h2 className="label text-[var(--muted)] border-b-2 border-[var(--rule-strong)] pb-2">Exhibits on the desk · tap to strike when used</h2>
           {exhibits.length === 0 && (
             <p className="py-4 text-sm text-[var(--muted)]">

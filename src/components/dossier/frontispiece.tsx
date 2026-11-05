@@ -7,6 +7,7 @@ import type { CaseSelection } from "@/lib/state/case-select";
 import { resolveCaseTruth } from "@/lib/state/case-select";
 import { getDailySelection, getUtcDateString, dailyCaseNumber } from "@/lib/engines/daily-case";
 import { cases } from "@/data/cases";
+import { dailyStats, loadResults, type DailyResults } from "@/lib/state/results";
 import { WatchPlate, Seal, Fleuron } from "@/components/art/plates";
 import { DOSSIER } from "./sections";
 import { caseMeta, formatCaseDate, openCase, plateTime } from "./case-meta";
@@ -168,11 +169,20 @@ function saveStatus(caseId: string): string | null {
   }
 }
 
+const PAGE = 7;
+
 function ArchiveLedger({ current }: { current: CaseSelection | null }) {
   const today = getUtcDateString();
+  const total = Number(dailyCaseNumber(today) ?? 0);
+  const pages = Math.max(1, Math.ceil(total / PAGE));
+  const [page, setPage] = useState(0);
+  const [results] = useState<DailyResults>(() => (typeof window === "undefined" ? {} : loadResults()));
+  const stats = useMemo(() => dailyStats(results, today), [results, today]);
+
+  // Only the visible page is generated: each daily is built from its date on demand.
   const rows = useMemo(() => {
     const out: { seed: string; number: string; title: string; victim: string; status: string | null }[] = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = page * PAGE; i < Math.min(total, (page + 1) * PAGE); i++) {
       const seed = getUtcDateString(new Date(Date.parse(`${today}T00:00:00Z`) - i * 86400000));
       const number = dailyCaseNumber(seed);
       if (!number) break;
@@ -181,47 +191,82 @@ function ArchiveLedger({ current }: { current: CaseSelection | null }) {
       out.push({ seed, number, title: truth.title, victim: truth.victim.name, status: saveStatus(truth.id) });
     }
     return out;
-  }, [today]);
+  }, [today, page, total]);
+
+  const statCells: [string, string][] = [
+    ["Filed", String(stats.played)],
+    ["Culprit named", stats.played ? `${stats.solved}/${stats.played}` : "—"],
+    ["Average", stats.average === null ? "—" : `${stats.average}%`],
+    ["Streak", stats.longest ? `${stats.streak} · best ${stats.longest}` : "—"],
+  ];
 
   return (
-    <table className="w-full mt-2 text-sm">
-      <caption className="sr-only">Daily cases, most recent first</caption>
-      <thead>
-        <tr className="label text-[var(--muted)] text-left">
-          <th className="py-2 font-normal w-14">Nº</th>
-          <th className="py-2 font-normal">Case</th>
-          <th className="py-2 font-normal text-right">Record</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => {
-          const isCurrent = current?.kind === "generated" && current.seed === r.seed;
-          return (
-            <tr key={r.seed} className="border-t border-[var(--border)]">
-              <td className="py-2.5 mono text-[var(--copper)] align-top">{r.number}</td>
-              <td className="py-2.5">
-                <button className="text-left min-h-11 hover:text-[var(--accent)] underline-offset-4 hover:underline" onClick={() => openCase(getDailySelection(new Date(`${r.seed}T00:00:00Z`)))}>
-                  <span className="display text-lg leading-tight block">{r.title}</span>
-                  <span className="block text-sm text-[var(--muted)]">The late {r.victim}</span>
-                  <span className="label text-[var(--muted)]">{r.seed === today ? "Today" : formatCaseDate(r.seed)}</span>
-                </button>
-              </td>
-              <td className="py-2.5 text-right label align-top">
-                {r.status === "accused" ? (
-                  <span className="text-[var(--confirmed)] whitespace-nowrap">✓ Closed</span>
-                ) : isCurrent ? (
-                  <span className="text-[var(--copper)] whitespace-nowrap">◆ On desk</span>
-                ) : r.status ? (
-                  <span className="text-[var(--accent)] whitespace-nowrap">◐ In progress</span>
-                ) : (
-                  <span className="text-[var(--muted)] whitespace-nowrap">Unopened</span>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <>
+      <dl className="mt-3 grid grid-cols-2 sm:grid-cols-4 border-b border-[var(--border)] pb-3" aria-label="Your record on this device">
+        {statCells.map(([k, v]) => (
+          <div key={k} className="pr-2">
+            <dt className="label text-[var(--muted)]">{k}</dt>
+            <dd className="mono mt-0.5">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <table className="w-full mt-2 text-sm">
+        <caption className="sr-only">Daily cases, most recent first, page {page + 1} of {pages}</caption>
+        <thead>
+          <tr className="label text-[var(--muted)] text-left">
+            <th className="py-2 font-normal w-14">Nº</th>
+            <th className="py-2 font-normal">Case</th>
+            <th className="py-2 font-normal text-right">Record</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const isCurrent = current?.kind === "generated" && current.seed === r.seed;
+            const result = results[r.seed];
+            return (
+              <tr key={r.seed} className="border-t border-[var(--border)]">
+                <td className="py-2.5 mono text-[var(--copper)] align-top">{r.number}</td>
+                <td className="py-2.5">
+                  <button className="text-left min-h-11 hover:text-[var(--accent)] underline-offset-4 hover:underline" onClick={() => openCase(getDailySelection(new Date(`${r.seed}T00:00:00Z`)))}>
+                    <span className="display text-lg leading-tight block">{r.title}</span>
+                    <span className="block text-sm text-[var(--muted)]">The late {r.victim}</span>
+                    <span className="label text-[var(--muted)]">{r.seed === today ? "Today" : formatCaseDate(r.seed)}</span>
+                  </button>
+                </td>
+                <td className="py-2.5 text-right label align-top">
+                  {result ? (
+                    <span className={`whitespace-nowrap ${result.culpritCorrect ? "text-[var(--confirmed)]" : "text-[var(--danger)]"}`}>
+                      {result.culpritCorrect ? "✓" : "✕"} {result.percentage}%
+                    </span>
+                  ) : r.status === "accused" ? (
+                    <span className="text-[var(--confirmed)] whitespace-nowrap">✓ Closed</span>
+                  ) : isCurrent ? (
+                    <span className="text-[var(--copper)] whitespace-nowrap">◆ On desk</span>
+                  ) : r.status ? (
+                    <span className="text-[var(--accent)] whitespace-nowrap">◐ In progress</span>
+                  ) : (
+                    <span className="text-[var(--muted)] whitespace-nowrap">Unopened</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {pages > 1 && (
+        <nav className="mt-3 flex items-center justify-between" aria-label="Archive pages">
+          <button className="btn min-h-11" disabled={page === 0} onClick={() => setPage(page - 1)}>
+            ← Newer
+          </button>
+          <span className="label text-[var(--muted)]">
+            Page {page + 1} / {pages}
+          </span>
+          <button className="btn min-h-11" disabled={page >= pages - 1} onClick={() => setPage(page + 1)}>
+            Older →
+          </button>
+        </nav>
+      )}
+    </>
   );
 }
 
