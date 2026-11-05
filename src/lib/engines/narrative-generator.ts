@@ -79,9 +79,9 @@ const NOT_TEMPLATES_V2: Record<Axis, Array<(name: string) => string>> = {
     (n) => `The post-mortem shows ${n} played no part in the death.`,
   ],
   location: [
-    (n) => `The killing did not take place in ${n}.`,
-    (n) => `Investigators cleared ${n}: nothing happened there.`,
-    (n) => `Whatever happened that night, it did not happen in ${n}.`,
+    (n) => `The killing did not take place at ${n}.`,
+    (n) => `Investigators ruled out ${n} as the scene of the killing.`,
+    (n) => `Whatever happened that night, the killing was not at ${n}.`,
   ],
 };
 

@@ -30,15 +30,15 @@ describe("rules v2 (dailies from RULES_V2_FROM, all practice seeds)", () => {
     }
   });
 
-  it("keeps the most-named value in then-slots near chance", () => {
-    // Undamped this ran at 0.17 (the answer led then-slots ~1.6x chance); damped it is ~0.08.
+  it("damps the most-named-value tells in then and not-both slots", () => {
+    // Per axis and slot kind: undamped 0.24, damped ~0.13.
     let tells = 0;
     const N = 300;
     for (let i = 0; i < N; i++) {
       const p = generatePuzzleCase({ seed: `freq-${i}`, suspectCount: 5, minimal: true });
-      tells += frequencyTells(p.clues, p.solution);
+      tells += frequencyTells(p);
     }
-    expect(tells / (N * 3)).toBeLessThan(0.12);
+    expect(tells / (N * 3)).toBeLessThan(0.18);
   });
 
   it("takes key exhibits from the steps that settle the culprit", () => {

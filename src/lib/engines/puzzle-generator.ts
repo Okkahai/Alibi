@@ -129,20 +129,45 @@ export function namesGiveAnswerAway({ suspects, methods, locations, clues, solut
   );
 }
 
-/** Count of axes where the answer is the single most-named value in "then" slots (or, for suspects, in not-both slots). */
-export function frequencyTells(clues: Clue[], solution: PuzzleSolution): number {
-  const count = (pick: (c: Clue) => [Axis, string] | null, axis: Axis, answer: string) => {
-    const tally = new Map<string, number>();
-    for (const c of clues) {
-      const hit = pick(c);
-      if (hit && (hit[0] === "falseAlibi" ? "culprit" : hit[0]) === axis) tally.set(hit[1], (tally.get(hit[1]) ?? 0) + 1);
+/**
+ * Frequency tells: for each axis, whether the answer is the single most-named
+ * option in "then" or "not both" slots, among options no "not" exhibit has
+ * already cleared. Returns how many fire. Damping more slot kinds, or "least
+ * named", was measured to move the tells around rather than shrink them.
+ */
+export function frequencyTells({ suspects, methods, locations, clues, solution }: PuzzleCase): number {
+  const ax = (a: Axis) => (a === "falseAlibi" ? "culprit" : a);
+  const slots = (c: Clue): [string, Axis, string][] =>
+    c.kind === "linked" || c.kind === "not-linked"
+      ? [[c.kind, ax(c.axisA), c.valueA], [c.kind, ax(c.axisB), c.valueB]]
+      : c.kind === "conditional"
+        ? [["if", ax(c.ifAxis), c.ifValue], [c.thenNegated ? "then-not" : "then", ax(c.thenAxis), c.thenValue]]
+        : [];
+  const answer: Record<string, string> = { culprit: solution.culprit, method: solution.method, location: solution.location };
+  const cleared = new Set(clues.flatMap((c) => (c.kind === "not" ? [`${ax(c.axis)}:${c.value}`] : [])));
+  let tells = 0;
+  const domain: Record<string, string[]> = { culprit: suspects, method: methods, location: locations };
+  for (const axis of ["culprit", "method", "location"] as Axis[]) {
+    const open = domain[axis].filter((v) => !cleared.has(`${axis}:${v}`));
+    for (const kind of ["then", "not-linked"]) {
+      // Options never named here count as 0: "the only room any then-slot names" is the strongest tell.
+      const tally = new Map(open.map((v) => [v, 0]));
+      let named = 0;
+      for (const c of clues) {
+        for (const [k, a, v] of slots(c)) {
+          if (k !== kind || a !== axis || !tally.has(v)) continue;
+          tally.set(v, tally.get(v)! + 1);
+          named++;
+        }
+      }
+      if (open.length < 2 || named === 0) continue;
+      const counts = [...tally.values()];
+      const mine = tally.get(answer[axis]) ?? 0;
+      const unique = (n: number) => counts.filter((x) => x === n).length === 1;
+      if (mine === Math.max(...counts) && unique(mine)) tells++;
     }
-    const top = Math.max(0, ...tally.values());
-    return top > 0 && tally.get(answer) === top && [...tally.values()].filter((n) => n === top).length === 1 ? 1 : 0;
-  };
-  const then = (c: Clue): [Axis, string] | null => (c.kind === "conditional" && !c.thenNegated ? [c.thenAxis, c.thenValue] : null);
-  const notBoth = (c: Clue): [Axis, string] | null => (c.kind === "not-linked" && c.axisA === "culprit" ? [c.axisA, c.valueA] : null);
-  return count(then, "method", solution.method) + count(then, "location", solution.location) + count(notBoth, "culprit", solution.culprit);
+  }
+  return tells;
 }
 
 export function generatePuzzleCase({ seed, suspectCount, minimal = false }: GeneratePuzzleCaseOptions): PuzzleCase {
@@ -214,8 +239,8 @@ function generateMinimal(
       if (isUnique(without)) clues = without;
     }
     if (namesGiveAnswerAway({ suspects, methods, locations, clues, solution })) continue;
-    // Damp frequency tells: a set where a "most-named" count points at the answer is redrawn part of the time.
-    if (frequencyTells(clues, solution) > 0 && rng.next() < 0.7) continue;
+    // Damp frequency tells: redraw 70% of sets where one points at the answer (100% would invert the tell).
+    if (frequencyTells({ suspects, methods, locations, clues, solution }) > 0 && rng.next() < 0.7) continue;
     // Redraw sets whose deduction needs more than three exhibits at once: no hint could explain that step.
     if (buildDeductionTrace({ suspects, methods, locations, clues }).every((step) => step.clues.length <= 3)) break;
   }

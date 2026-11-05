@@ -145,7 +145,7 @@ Key exhibits are the ones the deduction trace uses to settle the culprit, and th
 
 Known v2 limits:
 
-- Mild frequency tells remain, the strongest about 1.3× chance (the least-named suspect is the culprit). Earlier the room or method named most often in "then" slots was the answer 1.5–1.7× more often than chance. Two changes brought that down to about 1.2×: negated conditionals in the pool, and `frequencyTells`, which redraws 70% of the sets where that count points at the answer. A hard reject would create the opposite tell.
+- Frequency tells remain. The measure is how often the answer is the single most- or least-named option in one slot kind (if, then, then-not, either, not-both), among options not already cleared. Undamped, the worst was 2.9× chance (the culprit was most-named in not-both clues at 7 suspects). `frequencyTells` redraws 70% of the sets where the answer is the single most-named option in "then" or "not-both" slots, which brings the worst down to about 2× and most others to 1.3–1.6×. Damping more slot kinds, damping "least-named", or redrawing more often was measured and only moved the tells around or inverted them. A minimal clue set carries some statistical shape by nature, and no single count picks the answer reliably.
 - "Exhibits relied upon" does not penalise ticking extras.
 
 Published dailies (2026-11-01 to 11-05) keep v1, and `daily-frozen.test.ts` enforces that.

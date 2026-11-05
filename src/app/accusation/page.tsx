@@ -70,8 +70,11 @@ export default function AccusationPage() {
     const verdict = !result.score.culprit.correct
       ? { title: "Finding overturned", line: <>{accused} walks free once the record is checked. The person responsible was </> }
       : fullyRight
-        ? { title: "Case closed", line: <>Your finding stands in every particular. The person responsible was </> }
-        : { title: "Charged, on a flawed account", line: <>You named the right person, but your account of how or where would not survive the trial. The person responsible was </> };
+        ? { title: "Case closed", line: <>Your finding names the right person{result.score.location ? ", method and room" : " and method"}. The person responsible was </> }
+        : {
+            title: "Charged, on a flawed account",
+            line: <>You named the right person, but your account of how{result.score.location ? " or where" : ""} would not survive the trial. The person responsible was </>,
+          };
     const nameOf = (axis: string, id: string) =>
       axis === "culprit" ? truth.characters.find((c) => c.id === id)?.name : axis === "method" ? truth.methods.find((m) => m.id === id)?.name : truth.locations.find((l) => l.id === id)?.name;
     return (
