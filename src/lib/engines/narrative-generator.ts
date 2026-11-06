@@ -26,6 +26,7 @@ import {
   LOCATION_NAMES,
   LOCATION_DESCRIPTIONS,
   FALLBACKS,
+  ESTATE_NAMES,
 } from "@/data/generator-content";
 
 type EvidenceType = Evidence["type"];
@@ -123,6 +124,30 @@ const CONDITIONAL_TEMPLATES: Array<(ifNoun: string, ifName: string, thenNoun: st
   (ifNoun, ifName, thenNoun, thenName, negated) =>
     `Should ${ifNoun} turn out to be ${ifName}, ${thenNoun} would ${negated ? "not be" : "have to be"} ${thenName}.`,
 ];
+
+/** First daily with varied titles (estate × phrasing, no repeats for a long run of days). */
+export const TITLES_FROM = "2026-11-07";
+
+const TITLE_PATTERNS: Array<(estate: string) => string> = [
+  (e) => `Death at ${e}`,
+  (e) => `The ${e} Inquest`,
+  (e) => `The ${e} Affair`,
+  (e) => `A Night at ${e}`,
+  (e) => `The ${e} Papers`,
+  (e) => `Silence at ${e}`,
+];
+
+/**
+ * Dailies walk a fixed shuffle of estates day by day, so a title does not come back for
+ * ESTATE_NAMES.length days; practice files draw at random. Its own RNG: no other content moves.
+ */
+function caseTitle(seed: string, isDaily: boolean): string {
+  const rng = createRng(`${seed}:title`);
+  if (!isDaily) return rng.pick(TITLE_PATTERNS)(rng.pick(ESTATE_NAMES));
+  const day = Math.round(Date.parse(`${seed}T00:00:00Z`) / 86_400_000);
+  const order = createRng("alibi:estates").sample(ESTATE_NAMES, ESTATE_NAMES.length);
+  return TITLE_PATTERNS[day % TITLE_PATTERNS.length](order[day % order.length]);
+}
 
 /** First daily generated under rules v2: pruned (harder) clue sets, no repeated first or last names. */
 export const RULES_V2_FROM = "2026-11-06";
@@ -383,7 +408,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
 
   const truth: CaseTruth = {
     id: `generated-${seed}`,
-    title: `The ${victimName.split(" ").pop()} Case`,
+    title: isDaily && seed < TITLES_FROM ? `The ${victimName.split(" ").pop()} Case` : caseTitle(seed, isDaily),
     difficulty,
     seed,
     victim: { name: victimName, description: "Found dead the night of a gathering at the estate; the body had been moved, so where the killing happened is for you to establish." },

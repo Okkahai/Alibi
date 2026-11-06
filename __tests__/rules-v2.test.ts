@@ -53,3 +53,15 @@ describe("rules v2 (dailies from RULES_V2_FROM, all practice seeds)", () => {
     expect(RULES_V2_FROM > "2026-11-04").toBe(true);
   });
 });
+
+describe("case titles (dailies from TITLES_FROM)", () => {
+  it("keeps published titles and does not repeat a title within three weeks", async () => {
+    const { TITLES_FROM } = await import("@/lib/engines/narrative-generator");
+    expect(generateCase({ seed: "2026-11-06", difficulty: DAILY_DIFFICULTY }).title).toBe("The Brennan Case");
+    const start = Date.parse(`${TITLES_FROM}T00:00:00Z`);
+    const titles = Array.from({ length: 21 }, (_, d) =>
+      generateCase({ seed: new Date(start + d * 86_400_000).toISOString().slice(0, 10), difficulty: DAILY_DIFFICULTY }).title
+    );
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+});
