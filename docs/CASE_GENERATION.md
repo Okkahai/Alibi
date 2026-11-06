@@ -149,3 +149,12 @@ Known v2 limits:
 - "Exhibits relied upon" does not penalise ticking extras.
 
 Published dailies (2026-11-01 to 11-05) keep v1, and `daily-frozen.test.ts` enforces that.
+
+## Titles (dailies from 2026-11-07, every practice file)
+
+Until 2026-11-06 a title was "The {victim surname} Case". With only 20 surnames, titles repeated within days. From `TITLES_FROM` a title is a phrasing ("Death at …", "The … Affair", and four more) applied to an estate name from `ESTATE_NAMES`.
+
+- **Dailies** walk a fixed shuffle of the 24 estates by day number, so no title repeats for 24 days.
+- **Practice files** draw at random from their own `:title` RNG.
+
+Estate names never name a room, a method or a person, so a title hints at nothing. Published titles are unchanged.

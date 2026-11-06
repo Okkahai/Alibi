@@ -108,3 +108,11 @@ export const EVIDENCE_FLAVORS = {
     { type: "photograph" as const, description: () => `A photograph suggesting a motive that turns out to lead nowhere.` },
   ],
 };
+
+/** Estate names for case titles. Never a room, method or person name, so a title can hint at nothing. */
+export const ESTATE_NAMES = [
+  "Ashcombe Hall", "Blackwater House", "Coldharbour", "Dunmere Abbey", "Elmstead Court", "Fallowfield",
+  "Greyfriars Lodge", "Hollin Park", "Ivybridge Manor", "Kestrel Grange", "Larkspur House", "Marrowgate",
+  "Nettlecombe", "Oakhurst Priory", "Pennyroyal Hall", "Quarry Hill", "Ravensworth", "Saltmarsh House",
+  "Thornbury Court", "Underwood", "Vellacott Hall", "Whitlow Grange", "Yarrowby", "Hawksmoor Lodge",
+];
