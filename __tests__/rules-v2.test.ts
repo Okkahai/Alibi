@@ -65,3 +65,14 @@ describe("case titles (dailies from TITLES_FROM)", () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
 });
+
+describe("suspect-clearing wording (dailies from WORDING_FROM)", () => {
+  it("uses the wider phrasing set from WORDING_FROM only", async () => {
+    const { WORDING_FROM } = await import("@/lib/engines/narrative-generator");
+    const fresh = /Whoever the killer was|The inspector is satisfied|struck from the list|Two independent witnesses|checks out\.|told investigators/;
+    const day = (from: string, d: number) => new Date(Date.parse(`${from}T00:00:00Z`) + d * 86_400_000).toISOString().slice(0, 10);
+    const text = (seed: string) => JSON.stringify(generateCase({ seed, difficulty: DAILY_DIFFICULTY }));
+    for (let d = 0; d < 6; d++) expect(text(day("2026-11-01", d))).not.toMatch(fresh);
+    expect(Array.from({ length: 14 }, (_, d) => text(day(WORDING_FROM, d))).some((t) => fresh.test(t))).toBe(true);
+  });
+});

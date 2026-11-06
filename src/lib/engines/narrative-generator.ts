@@ -86,6 +86,26 @@ const NOT_TEMPLATES_V2: Record<Axis, Array<(name: string) => string>> = {
   ],
 };
 
+/** First daily whose suspect-clearing clues draw on the wider phrasing set below. */
+export const WORDING_FROM = "2026-11-07";
+
+// Same meaning as the v2 lines ("this person is not the killer" / "this person's account is true"), more ways to say it.
+const NOT_TEMPLATES_V3: Record<Axis, Array<(name: string) => string>> = {
+  ...NOT_TEMPLATES_V2,
+  culprit: [
+    ...NOT_TEMPLATES.culprit,
+    (n) => `Whoever the killer was, it was not ${n}.`,
+    (n) => `The inspector is satisfied that ${n} did not commit the murder.`,
+    (n) => `On the evidence, ${n} can be struck from the list of suspects.`,
+    (n) => `Two independent witnesses vouch for ${n}; the killer was someone else.`,
+  ],
+  falseAlibi: [
+    ...NOT_TEMPLATES.falseAlibi,
+    (n) => `Every detail of ${n}'s account of the evening checks out.`,
+    (n) => `Everything ${n} told investigators has been verified.`,
+  ],
+};
+
 /** "The Study" → "the Study", "Kitchen" → "the Kitchen", for room names inside a sentence. */
 const roomInSentence = (name: string) => `the ${name.replace(/^The /, "")}`;
 
@@ -165,6 +185,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
   // Published dailies are frozen (docs/DAILY_SYSTEM.md): rule changes apply to dailies from their effective date, and to every practice seed.
   const isDaily = /^\d{4}-\d{2}-\d{2}$/.test(seed);
   const v2 = !isDaily || seed >= RULES_V2_FROM;
+  const notTemplates = !isDaily || seed >= WORDING_FROM ? NOT_TEMPLATES_V3 : v2 ? NOT_TEMPLATES_V2 : NOT_TEMPLATES;
   const puzzle = generatePuzzleCase({ seed: `${seed}:puzzle`, suspectCount, minimal: v2 });
   const names = createRng(`${seed}:narrative`);
 
@@ -220,7 +241,7 @@ export function generateCase({ seed, difficulty }: GenerateCaseOptions): CaseTru
       case "not":
       case "is": {
         const name = nameOf(clue.axis, clue.value);
-        const text = names.pick(clue.kind === "not" ? (v2 ? NOT_TEMPLATES_V2 : NOT_TEMPLATES)[clue.axis] : IS_TEMPLATES[clue.axis])(name);
+        const text = names.pick(clue.kind === "not" ? notTemplates[clue.axis] : IS_TEMPLATES[clue.axis])(name);
         return {
           text,
           events: [eventFor(clue.axis, clue.value)],

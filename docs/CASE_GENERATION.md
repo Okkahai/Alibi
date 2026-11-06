@@ -158,3 +158,7 @@ Until 2026-11-06 a title was "The {victim surname} Case". With only 20 surnames,
 - **Practice files** draw at random from their own `:title` RNG.
 
 Estate names never name a room, a method or a person, so a title hints at nothing. Published titles are unchanged.
+
+## Wording for clearing suspects (dailies from 2026-11-07, every practice seed)
+
+From `WORDING_FROM`, the clue that clears a suspect ("not the culprit") is drawn from seven phrasings instead of three. The clue that says someone's account is true ("not the false alibi") is drawn from four instead of two. Every phrasing means the same thing as the solver clue. The pick uses the same single narrative-RNG draw as before, so only the evidence text changes. Clues, exhibits and every other field stay the same, and dailies before 2026-11-07 are byte-identical.
