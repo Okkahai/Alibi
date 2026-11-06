@@ -102,7 +102,7 @@ const NOT_TEMPLATES_V3: Record<Axis, Array<(name: string) => string>> = {
   falseAlibi: [
     ...NOT_TEMPLATES.falseAlibi,
     (n) => `Every detail of ${n}'s account of the evening checks out.`,
-    (n) => `Nothing ${n} told investigators has been shown to be false.`,
+    (n) => `Everything ${n} told investigators has been verified.`,
   ],
 };
 
