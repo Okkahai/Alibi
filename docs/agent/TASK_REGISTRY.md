@@ -6,9 +6,9 @@ Confidence is this writer's own confidence in the entry's accuracy, not a priori
 
 ---
 
-## T-001 — Decide the fate of PR #9
+## T-001 — Decide the fate of PR #9 — CLOSED 2026-11-10
 
-- **Status:** blocked on a decision from Gün.
+- **Status:** done. Gün said "continue the processes" on 2026-11-10, which the project's standing no-ask-for-already-covered-approvals rule treated as covering this; closed as superseded, with a comment on the PR explaining why and pointing back to this entry for anyone who wants to recover a specific idea from it.
 - **Priority:** medium (it's not blocking other work, but it's stale enough to actively mislead a new agent that finds it).
 - **Objective:** either close PR #9 or deliberately recover any still-wanted idea from it into a fresh PR.
 - **Acceptance criteria:** PR #9 is closed, or superseded by a new PR that states what was carried over and why; no open PR targets `main` with a base predating the rebuild (#10+).
@@ -73,5 +73,5 @@ Confidence is this writer's own confidence in the entry's accuracy, not a priori
 - **Files:** n/a.
 - **Tests:** n/a.
 - **Decisions:** none.
-- **Exact next action:** when a new session picks this project up, ask Gün what the next priority is rather than resuming the old "deduction matrix" backlog item, which reads as already closed.
-- **Confidence:** medium — confident the three named items are shipped (checked against merged PRs); not confident there is or isn't a newer unstated direction, since this session had no access to chat history beyond what's in project memory.
+- **Exact next action:** 2026-11-10 — re-verified directly in the code, not just the PR list: `src/app/deduction/` (matrix UI) and `src/lib/state/matrix.ts` exist; room/evidence content lives in `src/app/evidence/`, `src/app/crime-scene/`, and the narrative generator; `verdict`-keyed logic for loss-state variety is in `evaluation-engine.ts`, `daily-case.ts`, and both the accusation and evidence pages. The old "deduction matrix + vertical slice, room/evidence content, loss-state variety" backlog item is done. When a new session picks this project up, ask Gün what the next priority actually is — don't resume that item.
+- **Confidence:** high now — confirmed against the code directly, not just the merged-PR list.
