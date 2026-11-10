@@ -16,7 +16,8 @@ Alibi (formerly "ColdCase AI") is a daily deduction puzzle game, Wordle-style: o
 
 **[verified]** against `git log` / merged PR list on GitHub (2026-11-06):
 
-- PRs #1–#9: original prototype (Voss Manor handcrafted case, Postgres saves, procedural generator v1, frozen `CaseTruth`, pluggable LLM providers, case picker, first daily-mode attempt). **PR #9 is the exception — see "Needs a decision" below; it never merged.**
+- PRs #1–#8: original prototype (Voss Manor handcrafted case, Postgres saves, procedural generator v1, frozen `CaseTruth`, pluggable LLM providers, case picker, first daily-mode attempt). **PR #9 never merged — closed 2026-11-10 as superseded by the rebuild; see below.**
+- PR #23: this agent-handoff doc pack (merged 2026-11-10).
 - PR #10: rebuild phase 1–2 — repo audit (`docs/REBUILD_AUDIT.md`) + formal `PuzzleCase` model and real constraint solver (`docs/PUZZLE_MODEL.md`, `docs/CONSTRAINT_SOLVER.md`).
 - PR #11: editorial visual redesign (Forensic Modernism × Victorian Gothic), clue phrasing variety.
 - PR #12–#18: deduction matrix UI, crime-room leak fix, hints/scoring/share/reveal, interactive tutorial, frozen-daily fingerprinting + CI, "rules v2" minimal clue sets with decoys, frequency-tell damping, verdict variants.
@@ -40,9 +41,9 @@ Net effect: the daily game is a solver-backed logic puzzle today, not an LLM rol
 - Confirm the `freeze-dailies.yml` cron fires on its own without manual `workflow_dispatch` — it ran late or had to be triggered by hand at least twice in the first week (2026-11-05, 2026-11-06).
 - Culprit-elimination wording variety and a richer archive were both still "open" in that doc, but were actually shipped by PR #21/#22 and #20 — the doc is stale on those two lines. **[unresolved → now resolved by this handoff; update `docs/DEVELOPMENT_PROGRESS.md`'s "Open" list to drop them.]**
 - The client self-reports its hint count for scoring — accepted as fine for a no-account game, not treated as a bug.
-- PR #9 (`claude/project-thread-ot5qgu`, opened 2026-09-29) is still open on GitHub and conflicts with `main` (`mergeable_state: dirty`). Its base commit predates the entire rebuild (#10–#22); its content (old `case-generator.ts`, choice-based interrogation) has been structurally replaced. **Needs a decision — see `HANDOFF.md`.** **[verified]**
+- PR #9 (`claude/project-thread-ot5qgu`, opened 2026-09-29) was closed 2026-11-10 without merging — its base commit predated the entire rebuild (#10–#22) and its content (old `case-generator.ts`, choice-based interrogation) had been structurally replaced. **[verified]**
 - Old now-merged branches (`claude/alibi-archetypes-and-design`, `claude/case-generator`, `claude/case-picker-ui`, `claude/daily-mode-design`, `claude/deep-freeze-case-truth`, `claude/llm-providers`, `claude/postgres-saves`, `claude/project-thread-izpnl4`, `claude/alibi-rebuild-ukalgp`) remain undeleted on the remote. Harmless, just clutter. **[verified]**
-- No other unmerged feature work was found in this session beyond PR #9. The "deduction matrix + vertical slice, room/evidence content, loss-state variety" item from earlier project memory reads as already done (matrix: PR #12; room/evidence content exists in the generator/narrative layer; loss-state/verdict variety: PR #18). **[unresolved]** — no explicit confirmation from Gün that this backlog is considered closed; flagged in `HANDOFF.md`.
+- No other unmerged feature work was found beyond the now-closed PR #9. The "deduction matrix + vertical slice, room/evidence content, loss-state variety" item from earlier project memory is confirmed done, both by the merged PRs (matrix: #12; loss-state/verdict variety: #18) and by checking the code directly on 2026-11-10 (`src/app/deduction/`, `src/lib/state/matrix.ts`, `src/app/evidence/`, `src/app/crime-scene/`, `verdict`-keyed logic in `evaluation-engine.ts`/`daily-case.ts`). **[verified]** No next direction has been named yet — see `TASK_REGISTRY.md` T-004.
 
 ## Where to look next
 

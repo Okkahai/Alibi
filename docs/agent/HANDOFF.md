@@ -34,7 +34,7 @@ None of these affect the daily puzzle, which never calls an LLM.
 
 ### Missing context a new coordinator should know it doesn't have
 
-- **No access to the original cloud project threads' full chat history from this session** — only what's in project memory and the docs committed to the repo. Project memory names three Cloud threads: "ALIBI master rebuild" (`cse_01EkSruiwNByfFX1a6RiVCtA`, marked done), "ColdCase AI design and first case" (`cse_01BKz1mF8EKDjto4MhzrSEo1`, marked done), "Daily case game design" (`cse_012S2H3Gmv4mxpBreWZNWmK8`, marked blocked since 2026-09-29 — this is the thread behind the still-open PR #9). If those threads hold reasoning not reflected in the repo's own docs or commit messages, it is not captured here.
+- **No access to the original cloud project threads' full chat history from this session** — only what's in project memory and the docs committed to the repo. Project memory names three Cloud threads: "ALIBI master rebuild" (`cse_01EkSruiwNByfFX1a6RiVCtA`, marked done), "ColdCase AI design and first case" (`cse_01BKz1mF8EKDjto4MhzrSEo1`, marked done), "Daily case game design" (`cse_012S2H3Gmv4mxpBreWZNWmK8`, marked blocked since 2026-09-29 — this is the thread behind the now-closed PR #9). If those threads hold reasoning not reflected in the repo's own docs or commit messages, it is not captured here.
 - **No confirmed next-feature direction** past PR #22 — see `TASK_REGISTRY.md` T-004. Don't assume the old "deduction matrix / room content / loss-state variety" backlog is still live; it reads as shipped.
 - **This session did not check the GitHub Actions run history** for `freeze-dailies.yml` (see `TASK_REGISTRY.md` T-002) or re-verify that https://alibi-lilac.vercel.app currently serves what `main` contains — both are quick to check and weren't re-confirmed here beyond what the docs/CI config claim.
 
@@ -51,7 +51,7 @@ None of these affect the daily puzzle, which never calls an LLM.
 
 ### Needs explicit approval from Gün before acting
 
-- **Closing or superseding PR #9** (T-001) — this audit recommends closing it as stale, but that is this writer's judgment call, not an instruction received from Gün, and closing a PR is listed as an irreversible-enough action to check first per this project's own working agreement.
+- ~~Closing or superseding PR #9~~ — resolved 2026-11-10: Gün said to continue the transition, which covered closing it; see T-001.
 - **Deleting old merged branches** (`claude/alibi-archetypes-and-design`, `claude/case-generator`, `claude/case-picker-ui`, `claude/daily-mode-design`, `claude/deep-freeze-case-truth`, `claude/llm-providers`, `claude/postgres-saves`, `claude/project-thread-izpnl4`, `claude/alibi-rebuild-ukalgp`) — harmless clutter, not acted on without being asked.
 - Gün's standing instruction to "merge and deploy once checks pass, don't ask" is recorded in project memory and in `AGENTS.md`, but a new session in a different tool (no shared memory with this one) should have that confirmed directly by Gün rather than taken on faith from a document, especially once this moves off the Cloud-project memory system where that instruction currently lives.
 
